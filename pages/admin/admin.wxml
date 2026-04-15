@@ -387,6 +387,15 @@
         <view class="edit-popup__section-title">住宿信息</view>
 
         <view class="edit-popup__field">
+          <text class="edit-popup__label">房间床位</text>
+          <picker mode="multiSelector" range="{{bedPickerColumns}}" range-key="label" value="{{bedPickerValue}}" bindchange="onBedPickerChange" bindcolumnchange="onBedPickerColumnChange">
+            <view class="edit-popup__picker">
+              <text>{{selectedBedLabel || '点击选择房间和床位'}}</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="edit-popup__field">
           <text class="edit-popup__label">入住日期</text>
           <view class="edit-popup__date" catchtap="onOpenCheckInPicker">
             <text>{{editStudentForm.checkInDate || '点击选择日期'}}</text>
@@ -408,6 +417,17 @@
     </scroll-view>
   </view>
 </t-popup>
+
+<!-- 性别冲突确认对话框 -->
+<t-dialog
+  visible="{{showGenderConflictDialog}}"
+  title="性别冲突提示"
+  content="{{genderConflictMsg}}"
+  confirmBtn="确认换入"
+  cancelBtn="取消"
+  bind:confirm="onConfirmGenderConflict"
+  bind:cancel="onCancelGenderConflict"
+/>
 
 <!-- 入住日期选择器 -->
 <t-date-time-picker

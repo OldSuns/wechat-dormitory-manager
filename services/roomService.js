@@ -266,6 +266,109 @@ function updateRoomInfo(roomId, { floor, roomNumber }) {
   return { success: true };
 }
 
+/** 获取所有空床位 */
+function getEmptyBeds() {
+  const rooms = getAllRooms();
+  const emptyBeds = [];
+
+  rooms.forEach(room => {
+    room.beds.forEach(bed => {
+      if (bed.status === 'empty') {
+        emptyBeds.push({
+          roomId: room.roomId,
+          roomNumber: room.roomNumber,
+          floor: room.floor,
+          bedNo: bed.bedNo,
+          label: `${room.roomNumber}号房间 ${bed.bedNo}号床`
+        });
+      }
+    });
+  });
+
+  return emptyBeds;
+}
+
+/** 检查房间是否有异性住客 */
+function checkGenderConflict(roomId, gender) {
+  const room = getRoomById(roomId);
+  if (!room) return { hasConflict: false };
+
+  const occupiedBeds = room.beds.filter(b => b.status === 'occupied' && b.occupant);
+  if (occupiedBeds.length === 0) return { hasConflict: false };
+
+  const hasConflict = occupiedBeds.some(b => b.occupant.gender !== gender);
+  return {
+    hasConflict,
+    existingGender: occupiedBeds[0].occupant.gender
+  };
+}
+
+/** 换床位 */
+function transferBed({ studentId, newRoomId, newBedNo, forceTransfer = false }) {
+  // 1. 查找学生当前床位
+  const userService = require('./userService');
+  const currentBed = userService.getStudentBed(studentId);
+
+  if (!currentBed) {
+    return { success: false, msg: '学生未入住任何床位' };
+  }
+
+  // 2. 验证新床位
+  const newRoom = getRoomById(newRoomId);
+  if (!newRoom) return { success: false, msg: '目标房间不存在' };
+
+  const newBed = newRoom.beds.find(b => b.bedNo === newBedNo);
+  if (!newBed) return { success: false, msg: '目标床位不存在' };
+
+  if (newBed.status === 'occupied') {
+    return { success: false, msg: '目标床位已有人入住' };
+  }
+
+  // 3. 检查性别冲突
+  if (!forceTransfer) {
+    const genderCheck = checkGenderConflict(newRoomId, currentBed.occupant.gender);
+    if (genderCheck.hasConflict) {
+      return {
+        success: false,
+        needConfirm: true,
+        msg: `目标房间已有${genderCheck.existingGender}性住客，确认要换入吗？`
+      };
+    }
+  }
+
+  // 4. 保存占用信息
+  const occupantData = { ...currentBed.occupant };
+
+  // 5. 退出旧床位
+  const checkOutResult = checkOutBed({
+    roomId: currentBed.roomId,
+    bedNo: currentBed.bedNo
+  });
+
+  if (!checkOutResult.success) {
+    return { success: false, msg: '退出原床位失败' };
+  }
+
+  // 6. 入住新床位
+  const checkInResult = checkInBed({
+    roomId: newRoomId,
+    bedNo: newBedNo,
+    occupant: occupantData
+  });
+
+  if (!checkInResult.success) {
+    // 回滚：重新入住原床位
+    checkInBed({
+      roomId: currentBed.roomId,
+      bedNo: currentBed.bedNo,
+      occupant: occupantData
+    });
+    return { success: false, msg: '入住新床位失败' };
+  }
+
+  return { success: true };
+}
+
 /** 编辑在住人员信息 */
 function updateOccupant({ roomId, bedNo, occupant }) {
   const room = getRoomById(roomId);
@@ -294,4 +397,7 @@ module.exports = {
   modifyBedCount,
   updateRoomInfo,
   updateOccupant,
+  getEmptyBeds,
+  checkGenderConflict,
+  transferBed,
 };

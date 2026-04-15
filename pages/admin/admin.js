@@ -53,6 +53,14 @@ Page({
     },
     showCheckInPicker: false,
     showLeavePicker: false,
+    // 编辑学生 - 床位选择
+    bedPickerColumns: [[], []],
+    bedPickerValue: [0, 0],
+    selectedBedLabel: '',
+    roomBedMap: {},
+    showGenderConflictDialog: false,
+    genderConflictMsg: '',
+    pendingTransfer: null,
     // Tab4: 申请审批
     pendingCount: 0,
     pendingApps: [],
@@ -625,6 +633,75 @@ Page({
       return;
     }
 
+    // 加载所有空床位并按房间分组
+    const emptyBeds = roomService.getEmptyBeds();
+    const roomBedMap = {};
+
+    // 按房间分组床位
+    emptyBeds.forEach(bed => {
+      const key = `${bed.roomNumber}号房间`;
+      if (!roomBedMap[key]) {
+        roomBedMap[key] = {
+          roomId: bed.roomId,
+          roomNumber: bed.roomNumber,
+          floor: bed.floor,
+          beds: []
+        };
+      }
+      roomBedMap[key].beds.push({
+        bedNo: bed.bedNo,
+        label: `${bed.bedNo}号床`
+      });
+    });
+
+    // 如果学生已入住，将当前房间和床位也加入
+    if (roomInfo) {
+      const currentKey = `${roomInfo.roomNumber}号房间（当前）`;
+      if (!roomBedMap[currentKey]) {
+        roomBedMap[currentKey] = {
+          roomId: roomInfo.roomId,
+          roomNumber: roomInfo.roomNumber,
+          floor: roomInfo.floor,
+          beds: []
+        };
+      }
+      // 检查当前床位是否已在列表中
+      const bedExists = roomBedMap[currentKey].beds.some(b => b.bedNo === roomInfo.bedNo);
+      if (!bedExists) {
+        roomBedMap[currentKey].beds.unshift({
+          bedNo: roomInfo.bedNo,
+          label: `${roomInfo.bedNo}号床（当前）`
+        });
+      }
+    }
+
+    // 构建多级选择器数据
+    const roomColumn = Object.keys(roomBedMap).map(key => ({ label: key }));
+
+    // 获取当前选中房间的床位列表
+    let selectedRoomIndex = 0;
+    let selectedBedIndex = 0;
+    let selectedBedLabel = '';
+
+    if (roomInfo) {
+      const currentKey = `${roomInfo.roomNumber}号房间（当前）`;
+      selectedRoomIndex = roomColumn.findIndex(r => r.label === currentKey);
+      if (selectedRoomIndex === -1) {
+        selectedRoomIndex = 0;
+      }
+      const selectedRoomKey = roomColumn[selectedRoomIndex]?.label || '';
+      const beds = roomBedMap[selectedRoomKey]?.beds || [];
+      selectedBedIndex = beds.findIndex(b => b.bedNo === roomInfo.bedNo);
+      if (selectedBedIndex === -1) {
+        selectedBedIndex = 0;
+      }
+      selectedBedLabel = `${roomBedMap[selectedRoomKey].roomNumber}号房间 ${beds[selectedBedIndex].bedNo}号床`;
+    }
+
+    // 获取当前选中房间的床位列表
+    const selectedRoomKey = roomColumn[selectedRoomIndex]?.label || '';
+    const bedColumn = roomBedMap[selectedRoomKey]?.beds || [];
+
     const formData = {
       name: user.name || '',
       gender: user.gender || '男',
@@ -647,7 +724,11 @@ Page({
       this.setData({
         showEditStudentDialog: true,
         editingStudent: user,
-        editStudentForm: formData
+        editStudentForm: formData,
+        bedPickerColumns: [roomColumn, bedColumn],
+        bedPickerValue: [selectedRoomIndex, selectedBedIndex],
+        selectedBedLabel,
+        roomBedMap
       });
     }, 300);
   },
@@ -676,6 +757,39 @@ Page({
 
   onEditStudentTypeChange(e) {
     this.setData({ 'editStudentForm.type': e.detail.value });
+  },
+
+  onBedPickerChange(e) {
+    const [roomIndex, bedIndex] = e.detail.value;
+    const roomColumn = this.data.bedPickerColumns[0];
+    const roomKey = roomColumn[roomIndex]?.label;
+    const roomData = this.data.roomBedMap[roomKey];
+    const bedData = roomData?.beds[bedIndex];
+
+    if (roomData && bedData) {
+      const label = `${roomData.roomNumber}号房间 ${bedData.bedNo}号床`;
+      this.setData({
+        selectedBedLabel: label,
+        'editStudentForm.roomId': roomData.roomId,
+        'editStudentForm.bedNo': bedData.bedNo
+      });
+    }
+  },
+
+  onBedPickerColumnChange(e) {
+    const { column, value } = e.detail;
+
+    // 当第一列（房间）改变时，更新第二列（床位）
+    if (column === 0) {
+      const roomColumn = this.data.bedPickerColumns[0];
+      const roomKey = roomColumn[value]?.label;
+      const bedColumn = this.data.roomBedMap[roomKey]?.beds || [];
+
+      this.setData({
+        bedPickerColumns: [roomColumn, bedColumn],
+        bedPickerValue: [value, 0]
+      });
+    }
   },
 
   onOpenCheckInPicker() {
@@ -715,6 +829,7 @@ Page({
   onEditStudentConfirm() {
     const { name, gender, phone, type, hasRoom, roomId, bedNo, checkInDate, expectedLeaveDate } = this.data.editStudentForm;
     const studentId = this.data.editingStudent.studentId;
+    const originalRoomInfo = this.data.viewingStudentRoom;
 
     if (!name.trim()) {
       wx.showToast({ title: '请输入姓名', icon: 'none' });
@@ -734,26 +849,75 @@ Page({
       return;
     }
 
-    // 如果有住宿信息，更新床位占用信息
+    // 如果有住宿信息
     if (hasRoom && roomId && bedNo) {
-      const roomService = require('../../services/roomService');
-      const occupantResult = roomService.updateOccupant({
-        roomId: roomId,
-        bedNo: bedNo,
-        occupant: {
-          name: name.trim(),
-          gender,
-          phone: phone.trim(),
-          type,
-          studentId: studentId,
-          checkInDate: checkInDate,
-          expectedLeaveDate: expectedLeaveDate
-        }
-      });
+      // 检查是否换了床位
+      const bedChanged = originalRoomInfo &&
+        (originalRoomInfo.roomId !== roomId || originalRoomInfo.bedNo !== bedNo);
 
-      if (!occupantResult.success) {
-        wx.showToast({ title: '住宿信息更新失败: ' + occupantResult.msg, icon: 'none' });
-        return;
+      if (bedChanged) {
+        // 换床位
+        const transferResult = roomService.transferBed({
+          studentId: studentId,
+          newRoomId: roomId,
+          newBedNo: bedNo,
+          forceTransfer: false
+        });
+
+        if (!transferResult.success) {
+          if (transferResult.needConfirm) {
+            // 需要二次确认
+            this.setData({
+              showGenderConflictDialog: true,
+              genderConflictMsg: transferResult.msg,
+              pendingTransfer: { studentId, newRoomId: roomId, newBedNo: bedNo }
+            });
+            return;
+          } else {
+            wx.showToast({ title: transferResult.msg, icon: 'none' });
+            return;
+          }
+        }
+
+        // 换床位成功后，更新新床位的日期信息
+        const occupantResult = roomService.updateOccupant({
+          roomId: roomId,
+          bedNo: bedNo,
+          occupant: {
+            name: name.trim(),
+            gender,
+            phone: phone.trim(),
+            type,
+            studentId: studentId,
+            checkInDate: checkInDate,
+            expectedLeaveDate: expectedLeaveDate
+          }
+        });
+
+        if (!occupantResult.success) {
+          wx.showToast({ title: '更新住宿信息失败', icon: 'none' });
+          return;
+        }
+      } else {
+        // 没换床位，只更新当前床位信息
+        const occupantResult = roomService.updateOccupant({
+          roomId: roomId,
+          bedNo: bedNo,
+          occupant: {
+            name: name.trim(),
+            gender,
+            phone: phone.trim(),
+            type,
+            studentId: studentId,
+            checkInDate: checkInDate,
+            expectedLeaveDate: expectedLeaveDate
+          }
+        });
+
+        if (!occupantResult.success) {
+          wx.showToast({ title: '住宿信息更新失败: ' + occupantResult.msg, icon: 'none' });
+          return;
+        }
       }
     }
 
@@ -763,6 +927,57 @@ Page({
       showStudentDetailDialog: false
     });
     this._loadStudentOverview();
+    this._loadFloorOverview();
+  },
+
+  onConfirmGenderConflict() {
+    const { studentId, newRoomId, newBedNo } = this.data.pendingTransfer;
+
+    // 强制换床位
+    const transferResult = roomService.transferBed({
+      studentId,
+      newRoomId,
+      newBedNo,
+      forceTransfer: true
+    });
+
+    if (!transferResult.success) {
+      wx.showToast({ title: transferResult.msg, icon: 'none' });
+      return;
+    }
+
+    // 更新日期信息
+    const { name, gender, phone, type, checkInDate, expectedLeaveDate } = this.data.editStudentForm;
+    roomService.updateOccupant({
+      roomId: newRoomId,
+      bedNo: newBedNo,
+      occupant: {
+        name: name.trim(),
+        gender,
+        phone: phone.trim(),
+        type,
+        studentId,
+        checkInDate,
+        expectedLeaveDate
+      }
+    });
+
+    wx.showToast({ title: '修改成功', icon: 'success' });
+    this.setData({
+      showGenderConflictDialog: false,
+      showEditStudentDialog: false,
+      showStudentDetailDialog: false,
+      pendingTransfer: null
+    });
+    this._loadStudentOverview();
+    this._loadFloorOverview();
+  },
+
+  onCancelGenderConflict() {
+    this.setData({
+      showGenderConflictDialog: false,
+      pendingTransfer: null
+    });
   },
 
   // === Tab 4: 申请审批 ===
