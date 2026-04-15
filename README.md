@@ -21,8 +21,8 @@
 ### 1. 克隆项目
 
 ```bash
-git clone <your-repo-url>
-cd dormitory-manager
+git clone https://github.com/OldSuns/wechat-dormitory-manager.git
+cd wechat-dormitory-manager
 ```
 
 ### 2. 配置小程序 AppID
