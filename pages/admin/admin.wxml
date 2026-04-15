@@ -52,8 +52,8 @@
       <t-swipe-cell
         wx:for="{{allRooms}}"
         wx:key="roomId"
-        right="{{[{text: '删除', className: 'swipe-delete-btn'}]}}"
-        bind:click="onDeleteRoom"
+        right="{{[{text: '编辑', className: 'btn-edit'}, {text: '删除', className: 'btn-delete'}]}}"
+        bind:click="onRoomSwipeAction"
         data-roomid="{{item.roomId}}"
       >
         <view class="room-mgmt-cell">
@@ -62,14 +62,8 @@
             <text class="room-mgmt-cell__floor">{{item.floor}}F</text>
           </view>
           <view class="room-mgmt-cell__right">
-            <text class="room-mgmt-cell__label">床位数</text>
-            <t-stepper
-              value="{{item.beds.length}}"
-              min="{{1}}"
-              max="{{8}}"
-              mark:index="{{index}}"
-              bind:change="onBedCountChange"
-            />
+            <text class="room-mgmt-cell__bed-info">{{item.occupiedCount}}/{{item.beds.length}}</text>
+            <text class="room-mgmt-cell__label">已住/总床位</text>
           </view>
         </view>
       </t-swipe-cell>
@@ -210,6 +204,32 @@
     <view class="add-dialog-field">
       <text class="add-dialog-label">床位数</text>
       <t-stepper value="{{addBedCount}}" min="{{1}}" max="{{8}}" bind:change="onAddBedCountChange" />
+    </view>
+  </view>
+</t-dialog>
+
+
+<!-- 编辑房间弹窗 -->
+<t-dialog
+  visible="{{showEditRoomDialog}}"
+  title="编辑房间"
+  confirmBtn="确认保存"
+  cancelBtn="取消"
+  bind:confirm="onConfirmEditRoom"
+  bind:cancel="onEditRoomDialogClose"
+>
+  <view slot="content" class="edit-dialog-body">
+    <view class="add-dialog-field">
+      <text class="add-dialog-label">楼层</text>
+      <t-input placeholder="如 3" type="number" value="{{editRoomFloor}}" bindchange="onEditRoomFloorInput" />
+    </view>
+    <view class="add-dialog-field">
+      <text class="add-dialog-label">房间号</text>
+      <t-input placeholder="如 105" value="{{editRoomNumber}}" bindchange="onEditRoomNumberInput" />
+    </view>
+    <view class="add-dialog-field">
+      <text class="add-dialog-label">床位数</text>
+      <t-stepper value="{{editRoomBedCount}}" min="{{1}}" max="{{8}}" bind:change="onEditRoomBedCountChange" />
     </view>
   </view>
 </t-dialog>

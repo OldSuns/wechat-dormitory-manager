@@ -220,6 +220,52 @@ function modifyBedCount(roomId, newCount) {
   return { success: true };
 }
 
+/** 更新房间基本信息 (楼层、门牌号) */
+function updateRoomInfo(roomId, { floor, roomNumber }) {
+  const room = getRoomById(roomId);
+  if (!room) return { success: false, msg: '房间不存在' };
+
+  // Validate floor
+  if (!floor || floor < 1 || !Number.isInteger(floor)) {
+    return { success: false, msg: '请输入有效的楼层号（正整数）' };
+  }
+
+  // Validate room number uniqueness (if changed)
+  if (roomNumber !== room.roomNumber) {
+    const rooms = app().globalData.buildingData.rooms;
+    if (rooms.some(r => r.roomNumber === roomNumber && r.roomId !== roomId)) {
+      return { success: false, msg: '门牌号已存在' };
+    }
+  }
+
+  // Update room info
+  const oldFloor = room.floor;
+  room.floor = floor;
+  room.roomNumber = roomNumber;
+  room.roomId = roomNumber; // Keep roomId synced with roomNumber
+
+  // Update floors array
+  const buildingData = app().globalData.buildingData;
+  if (!buildingData.floors.includes(floor)) {
+    buildingData.floors.push(floor);
+    buildingData.floors.sort((a, b) => a - b);
+  }
+
+  // Remove old floor if no rooms left on it
+  if (oldFloor !== floor) {
+    const hasRoomsOnOldFloor = buildingData.rooms.some(r => r.floor === oldFloor);
+    if (!hasRoomsOnOldFloor) {
+      const floorIdx = buildingData.floors.indexOf(oldFloor);
+      if (floorIdx !== -1) {
+        buildingData.floors.splice(floorIdx, 1);
+      }
+    }
+  }
+
+  storageService.persistFromGlobal();
+  return { success: true };
+}
+
 /** 编辑在住人员信息 */
 function updateOccupant({ roomId, bedNo, occupant }) {
   const room = getRoomById(roomId);
@@ -246,5 +292,6 @@ module.exports = {
   addRoom,
   deleteRoom,
   modifyBedCount,
+  updateRoomInfo,
   updateOccupant,
 };

@@ -22,6 +22,12 @@ Page({
     showFloorPicker: false,
     floorPickerOptions: [],
     floorPickerValue: [],
+    // Room editing
+    showEditRoomDialog: false,
+    editingRoomId: null,
+    editRoomFloor: 1,
+    editRoomNumber: '',
+    editRoomBedCount: 4,
     // Tab3: 学生总览
     students: [],
     studentSummary: {
@@ -364,7 +370,10 @@ Page({
     const allRooms = roomService.getAllRooms().slice().sort((a, b) => {
       if (a.floor !== b.floor) return a.floor - b.floor;
       return a.roomNumber.localeCompare(b.roomNumber);
-    });
+    }).map(room => ({
+      ...room,
+      occupiedCount: room.beds.filter(b => b.status === 'occupied').length
+    }));
     this.setData({ allRooms });
   },
 
@@ -418,8 +427,18 @@ Page({
     }
   },
 
-  onDeleteRoom(e) {
+  onRoomSwipeAction(e) {
+    const { text } = e.detail;
     const roomId = e.currentTarget.dataset.roomid;
+
+    if (text === '编辑') {
+      this.onShowEditRoom(roomId);
+    } else if (text === '删除') {
+      this.onDeleteRoom(roomId);
+    }
+  },
+
+  onDeleteRoom(roomId) {
     const result = roomService.deleteRoom(roomId);
     if (result.success) {
       wx.showToast({ title: '删除成功', icon: 'success' });
@@ -430,16 +449,76 @@ Page({
     }
   },
 
-  onBedCountChange(e) {
-    const index = e.mark && e.mark.index;
-    const room = this.data.allRooms[index];
-    if (!room) return;
-    const newCount = e.detail.value;
-    const result = roomService.modifyBedCount(room.roomId, newCount);
-    if (!result.success) {
-      wx.showToast({ title: result.msg, icon: 'none' });
+  onShowEditRoom(roomId) {
+    const room = roomService.getRoomById(roomId);
+    if (!room) {
+      wx.showToast({ title: '房间不存在', icon: 'none' });
+      return;
     }
+
+    this.setData({
+      showEditRoomDialog: true,
+      editingRoomId: roomId,
+      editRoomFloor: room.floor,
+      editRoomNumber: room.roomNumber,
+      editRoomBedCount: room.beds.length
+    });
+  },
+
+  onEditRoomDialogClose() {
+    this.setData({ showEditRoomDialog: false });
+  },
+
+  onEditRoomFloorInput(e) {
+    this.setData({ editRoomFloor: parseInt(e.detail.value) || 1 });
+  },
+
+  onEditRoomNumberInput(e) {
+    this.setData({ editRoomNumber: e.detail.value });
+  },
+
+  onEditRoomBedCountChange(e) {
+    this.setData({ editRoomBedCount: e.detail.value });
+  },
+
+  onConfirmEditRoom() {
+    const { editingRoomId, editRoomFloor, editRoomNumber, editRoomBedCount } = this.data;
+
+    // Validate inputs
+    if (!editRoomFloor || editRoomFloor < 1 || !Number.isInteger(editRoomFloor)) {
+      wx.showToast({ title: '请输入有效的楼层号（正整数）', icon: 'none' });
+      return;
+    }
+    if (!editRoomNumber.trim()) {
+      wx.showToast({ title: '请输入房间号', icon: 'none' });
+      return;
+    }
+
+    // Update room basic info (floor, roomNumber)
+    const updateResult = roomService.updateRoomInfo(editingRoomId, {
+      floor: editRoomFloor,
+      roomNumber: editRoomNumber.trim()
+    });
+
+    if (!updateResult.success) {
+      wx.showToast({ title: updateResult.msg, icon: 'none' });
+      return;
+    }
+
+    // Update bed count if changed
+    const room = roomService.getRoomById(editRoomNumber.trim()); // Use new roomNumber as roomId
+    if (room && editRoomBedCount !== room.beds.length) {
+      const bedCountResult = roomService.modifyBedCount(room.roomId, editRoomBedCount);
+      if (!bedCountResult.success) {
+        wx.showToast({ title: bedCountResult.msg, icon: 'none' });
+        return;
+      }
+    }
+
+    wx.showToast({ title: '修改成功', icon: 'success' });
+    this.setData({ showEditRoomDialog: false });
     this._loadRoomManagement();
+    this._loadFloorOverview();
   },
 
   // === Tab 3: 学生总览 ===
