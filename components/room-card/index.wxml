@@ -1,0 +1,36 @@
+<view class="room-card room-card--{{summary.statusType}}" bindtap="onTap">
+  <view class="room-card__header">
+    <text class="room-card__number">{{room.roomNumber}}</text>
+    <t-tag
+      wx:if="{{summary.statusType === 'available'}}"
+      variant="light"
+      theme="success"
+      size="small"
+    >有空床</t-tag>
+    <t-tag
+      wx:elif="{{summary.statusType === 'leaving-soon'}}"
+      variant="light"
+      theme="warning"
+      size="small"
+    >即将退宿</t-tag>
+    <t-tag
+      wx:else
+      variant="light"
+      theme="danger"
+      size="small"
+    >满房</t-tag>
+  </view>
+  <view class="room-card__body">
+    <view class="room-card__stat">
+      <text class="room-card__stat-value">{{summary.totalBeds}}</text>
+      <text class="room-card__stat-label">总床位</text>
+    </view>
+    <view class="room-card__stat">
+      <text class="room-card__stat-value room-card__stat-value--empty">{{summary.emptyBeds}}</text>
+      <text class="room-card__stat-label">空床</text>
+    </view>
+  </view>
+  <view class="room-card__footer">
+    <text class="room-card__rate">入住率 {{summary.occupancyRate}}%</text>
+  </view>
+</view>

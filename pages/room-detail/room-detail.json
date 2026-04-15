@@ -1,0 +1,10 @@
+{
+  "usingComponents": {
+    "t-action-sheet": "tdesign-miniprogram/action-sheet/action-sheet",
+    "t-dialog": "tdesign-miniprogram/dialog/dialog",
+    "bed-card": "/components/bed-card/index",
+    "checkin-popup": "/components/checkin-popup/index",
+    "edit-occupant-popup": "/components/edit-occupant-popup/index"
+  },
+  "navigationBarTitleText": "房间详情"
+}

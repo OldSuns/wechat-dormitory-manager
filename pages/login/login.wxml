@@ -1,0 +1,30 @@
+<view class="login-page">
+  <view class="login-header">
+    <t-icon name="home" size="120rpx" color="#0052d9" />
+    <text class="login-title">宿舍管理系统</text>
+    <text class="login-subtitle">研究生 / 实习生 宿舍床位管理</text>
+  </view>
+
+  <view class="login-body">
+    <view class="login-field">
+      <text class="login-label">请输入学号/工号完成本机身份绑定</text>
+      <t-input
+        placeholder="学号 / 工号"
+        value="{{studentId}}"
+        bindchange="onStudentIdInput"
+        clearable
+      />
+    </view>
+
+    <view class="login-error" wx:if="{{errorMsg}}">
+      <text>{{errorMsg}}</text>
+    </view>
+
+    <t-button theme="primary" size="large" block bindtap="onBind">
+      进入系统
+    </t-button>
+
+    <text class="login-hint">管理员请输入工号，学生请输入学号</text>
+    <text class="login-hint">本机将记住上次登录身份，下次自动进入</text>
+  </view>
+</view>

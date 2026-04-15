@@ -1,0 +1,43 @@
+<t-navbar title="宿舍管理" />
+
+<view class="page">
+  <!-- 楼层切换 Tabs -->
+  <t-tabs defaultValue="{{0}}" bind:change="onTabChange" t-class="floor-tabs">
+    <t-tab-panel wx:for="{{floors}}" wx:key="*this" label="{{item}}F" value="{{index}}" />
+  </t-tabs>
+
+  <!-- 楼层概览统计 -->
+  <view class="summary-bar">
+    <view class="summary-item">
+      <text class="summary-value">{{floorSummary.totalRooms}}</text>
+      <text class="summary-label">房间</text>
+    </view>
+    <view class="summary-item">
+      <text class="summary-value">{{floorSummary.totalBeds}}</text>
+      <text class="summary-label">总床位</text>
+    </view>
+    <view class="summary-item">
+      <text class="summary-value summary-value--green">{{floorSummary.emptyBeds}}</text>
+      <text class="summary-label">空床</text>
+    </view>
+    <view class="summary-item" wx:if="{{floorSummary.leavingSoonCount > 0}}">
+      <text class="summary-value summary-value--orange">{{floorSummary.leavingSoonCount}}</text>
+      <text class="summary-label">即将退宿</text>
+    </view>
+  </view>
+
+  <!-- 房间卡片网格 -->
+  <view class="room-grid">
+    <view class="room-grid__item" wx:for="{{rooms}}" wx:key="roomId">
+      <room-card
+        room="{{item}}"
+        summary="{{roomSummaries[item.roomId]}}"
+        bind:roomtap="onRoomTap"
+      />
+    </view>
+  </view>
+
+  <view wx:if="{{rooms.length === 0}}" class="empty-hint">
+    <text>该楼层暂无房间数据</text>
+  </view>
+</view>

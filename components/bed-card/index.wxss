@@ -1,0 +1,75 @@
+.bed-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.bed-card:active {
+  opacity: 0.85;
+}
+
+.bed-card--empty {
+  border-left: 6rpx solid #2ba471;
+  background: #f8fdf9;
+}
+
+.bed-card--occupied {
+  border-left: 6rpx solid #0052d9;
+}
+
+.bed-card--leaving {
+  border-left: 6rpx solid #e37318;
+  background: #fffbf5;
+}
+
+.bed-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.bed-card__no {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.bed-card__info {
+  padding-top: 8rpx;
+}
+
+.bed-card__row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8rpx 0;
+}
+
+.bed-card__label {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.bed-card__value {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.bed-card__value--warn {
+  color: #e37318;
+  font-weight: 500;
+}
+
+.bed-card__empty {
+  padding: 40rpx 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.bed-card__empty-text {
+  font-size: 28rpx;
+  color: #2ba471;
+}

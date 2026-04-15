@@ -1,0 +1,47 @@
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 60rpx;
+}
+
+.room-header {
+  background: #fff;
+  padding: 32rpx;
+  margin: 20rpx 24rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.room-header__title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.room-header__stats {
+  display: flex;
+  gap: 24rpx;
+}
+
+.room-header__stat {
+  font-size: 26rpx;
+  color: #666;
+  background: #f5f5f5;
+  padding: 8rpx 20rpx;
+  border-radius: 8rpx;
+}
+
+.room-header__stat--green {
+  color: #2ba471;
+  background: #e3f9e9;
+}
+
+.room-header__stat--orange {
+  color: #e37318;
+  background: #fff1e9;
+}
+
+.bed-list {
+  padding: 0 24rpx;
+}

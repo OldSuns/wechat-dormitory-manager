@@ -1,0 +1,67 @@
+<t-navbar title="{{room.roomNumber}}号房间" left-arrow />
+
+<view class="page">
+  <!-- 房间顶部摘要 -->
+  <view class="room-header" wx:if="{{summary}}">
+    <view class="room-header__title">{{room.roomNumber}}号房间</view>
+    <view class="room-header__stats">
+      <text class="room-header__stat">总床位 {{summary.totalBeds}}</text>
+      <text class="room-header__stat room-header__stat--green">空床 {{summary.emptyBeds}}</text>
+      <text wx:if="{{summary.leavingSoonCount > 0}}" class="room-header__stat room-header__stat--orange">即将退宿 {{summary.leavingSoonCount}}</text>
+    </view>
+  </view>
+
+  <!-- 床位卡片列表 -->
+  <view class="bed-list" wx:if="{{room}}">
+    <bed-card
+      wx:for="{{room.beds}}"
+      wx:key="bedNo"
+      bed="{{item}}"
+      roomNumber="{{room.roomNumber}}"
+      isLeavingSoon="{{leavingSoonMap[item.bedNo]}}"
+      userRole="{{userRole}}"
+      bind:bedtap="onBedTap"
+    />
+  </view>
+</view>
+
+<!-- ActionSheet -->
+<t-action-sheet
+  visible="{{showActionSheet}}"
+  items="{{actionSheetItems}}"
+  bind:selected="onActionSheetSelected"
+  bind:cancel="onActionSheetCancel"
+  bind:close="onActionSheetCancel"
+/>
+
+<!-- 入住弹层 -->
+<checkin-popup
+  visible="{{showCheckinPopup}}"
+  roomId="{{roomId}}"
+  roomNumber="{{room.roomNumber}}"
+  bedNo="{{checkinBedNo}}"
+  bind:close="onCheckinClose"
+  bind:submit="onCheckinSubmit"
+/>
+
+<!-- 退宿确认弹窗 -->
+<t-dialog
+  visible="{{showCheckoutDialog}}"
+  title="确认退宿"
+  content="确认为该床位办理退宿吗？退宿后床位将恢复为空置状态。"
+  confirmBtn="确认退宿"
+  cancelBtn="取消"
+  bind:confirm="onCheckoutConfirm"
+  bind:cancel="onCheckoutCancel"
+/>
+
+<!-- 修改信息弹层 -->
+<edit-occupant-popup
+  visible="{{showEditPopup}}"
+  roomId="{{roomId}}"
+  roomNumber="{{room.roomNumber}}"
+  bedNo="{{editBedNo}}"
+  occupant="{{editOccupant}}"
+  bind:close="onEditClose"
+  bind:submit="onEditSubmit"
+/>

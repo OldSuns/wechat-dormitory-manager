@@ -1,0 +1,175 @@
+<t-navbar title="宿舍服务" />
+
+<view class="page">
+  <t-tabs defaultValue="{{0}}" bind:change="onTabChange" t-class="student-tabs">
+    <t-tab-panel label="我的床位" value="{{0}}" />
+    <t-tab-panel label="浏览楼层" value="{{1}}" />
+    <t-tab-panel label="我的申请" value="{{2}}" />
+    <t-tab-panel label="设置" value="{{3}}" />
+  </t-tabs>
+
+  <!-- Tab 1: 我的床位 -->
+  <view wx:if="{{currentTab === 0}}" class="tab-content">
+    <block wx:if="{{myBedInfo}}">
+      <view class="my-bed-card">
+        <view class="my-bed-card__title">
+          <text>{{myBedInfo.room.roomNumber}}号房间 - {{myBedInfo.bed.bedNo}}号床</text>
+          <t-tag variant="light" theme="primary" size="small">已入住</t-tag>
+        </view>
+        <view class="my-bed-card__info">
+          <view class="my-bed-card__row">
+            <text class="my-bed-card__label">姓名</text>
+            <text class="my-bed-card__value">{{myBedInfo.bed.occupant.name}}</text>
+          </view>
+          <view class="my-bed-card__row">
+            <text class="my-bed-card__label">类型</text>
+            <text class="my-bed-card__value">{{myBedInfo.bed.occupant.type}}</text>
+          </view>
+          <view class="my-bed-card__row">
+            <text class="my-bed-card__label">学号/工号</text>
+            <text class="my-bed-card__value">{{myBedInfo.bed.occupant.studentId}}</text>
+          </view>
+          <view class="my-bed-card__row">
+            <text class="my-bed-card__label">入住日期</text>
+            <text class="my-bed-card__value">{{myBedInfo.bed.occupant.checkInDate}}</text>
+          </view>
+          <view class="my-bed-card__row">
+            <text class="my-bed-card__label">预计退宿</text>
+            <text class="my-bed-card__value">{{myBedInfo.bed.occupant.expectedLeaveDate}}</text>
+          </view>
+        </view>
+        <view class="my-bed-card__action">
+          <t-button theme="danger" variant="outline" size="medium" block bindtap="onApplyCheckout">
+            申请退宿
+          </t-button>
+        </view>
+      </view>
+    </block>
+    <t-empty wx:else description="您暂未入住，请前往浏览楼层申请床位" />
+  </view>
+
+  <!-- Tab 2: 浏览楼层 -->
+  <view wx:if="{{currentTab === 1}}">
+    <t-tabs defaultValue="{{0}}" bind:change="onFloorTabChange" t-class="floor-tabs">
+      <t-tab-panel wx:for="{{floors}}" wx:key="*this" label="{{item}}F" value="{{index}}" />
+    </t-tabs>
+
+    <view class="summary-bar">
+      <view class="summary-item">
+        <text class="summary-value">{{floorSummary.totalRooms}}</text>
+        <text class="summary-label">房间</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value">{{floorSummary.totalBeds}}</text>
+        <text class="summary-label">总床位</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value summary-value--green">{{floorSummary.emptyBeds}}</text>
+        <text class="summary-label">空床</text>
+      </view>
+    </view>
+
+    <view class="room-grid">
+      <view class="room-grid__item" wx:for="{{rooms}}" wx:key="roomId">
+        <room-card room="{{item}}" summary="{{roomSummaries[item.roomId]}}" bind:roomtap="onRoomTap" />
+      </view>
+    </view>
+    <view wx:if="{{rooms.length === 0}}" class="empty-hint"><text>该楼层暂无房间</text></view>
+  </view>
+
+  <!-- Tab 3: 我的申请 -->
+  <view wx:if="{{currentTab === 2}}" class="tab-content">
+    <application-card
+      wx:for="{{myApplications}}"
+      wx:key="applicationId"
+      application="{{item}}"
+      showActions="{{false}}"
+    />
+    <t-empty wx:if="{{myApplications.length === 0}}" description="暂无申请记录" />
+  </view>
+
+  <!-- Tab 4: 设置 -->
+  <view wx:if="{{currentTab === 3}}" class="tab-content">
+    <view class="profile-card" wx:if="{{currentUser}}">
+      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image class="profile-avatar" src="{{currentUser.avatarUrl}}" mode="aspectFill" wx:if="{{currentUser.avatarUrl}}" />
+        <view class="profile-avatar profile-avatar--placeholder" wx:else>
+          <t-icon name="user" size="64rpx" color="#999" />
+        </view>
+        <view class="avatar-edit-badge">
+          <t-icon name="camera" size="24rpx" color="#fff" />
+        </view>
+      </button>
+      <view class="profile-info">
+        <input class="profile-name-input" type="nickname" placeholder="点击设置昵称" value="{{currentUser.nickName || currentUser.name}}" bindblur="onNicknameBlur" bindconfirm="onNicknameConfirm" />
+        <t-tag variant="light" theme="primary" size="small">学生</t-tag>
+      </view>
+    </view>
+
+    <view class="section-title">账号信息</view>
+    <t-cell-group bordered>
+      <t-cell title="姓名" note="{{currentUser.name}}" />
+      <t-cell title="学号" note="{{currentUser.studentId}}" />
+      <t-cell title="类型" note="{{currentUser.type}}" arrow hover bind:click="onEditType" />
+      <t-cell title="手机号" note="{{currentUser.phone || '未设置'}}" arrow hover bind:click="onEditPhone" />
+    </t-cell-group>
+
+    <view class="section-title">账号操作</view>
+    <t-cell-group bordered>
+      <t-cell title="退出登录" arrow hover bind:click="onShowLogout" t-class="logout-cell" />
+    </t-cell-group>
+  </view>
+</view>
+
+<!-- 退宿确认弹窗 -->
+<t-dialog
+  visible="{{showCheckoutDialog}}"
+  title="申请退宿"
+  content="确认提交退宿申请？提交后需等待管理员审批。"
+  confirmBtn="确认提交"
+  cancelBtn="取消"
+  bind:confirm="onCheckoutConfirm"
+  bind:cancel="onCheckoutCancel"
+/>
+
+<!-- 退出确认 -->
+<t-dialog
+  visible="{{showLogoutDialog}}"
+  title="退出登录"
+  content="确认退出当前账号？下次进入需重新登录绑定。"
+  confirmBtn="确认退出"
+  cancelBtn="取消"
+  bind:confirm="onLogoutConfirm"
+  bind:cancel="onLogoutCancel"
+/>
+
+<!-- 修改手机号 -->
+<t-dialog
+  visible="{{showEditPhoneDialog}}"
+  title="修改手机号"
+  confirmBtn="保存"
+  cancelBtn="取消"
+  bind:confirm="onEditPhoneConfirm"
+  bind:cancel="onEditPhoneCancel"
+>
+  <view slot="content" class="edit-dialog-body">
+    <t-input placeholder="请输入手机号" type="number" maxlength="{{11}}" value="{{editPhone}}" bindchange="onEditPhoneInput" clearable />
+  </view>
+</t-dialog>
+
+<!-- 修改类型 -->
+<t-dialog
+  visible="{{showEditTypeDialog}}"
+  title="修改人员类型"
+  confirmBtn="保存"
+  cancelBtn="取消"
+  bind:confirm="onEditTypeConfirm"
+  bind:cancel="onEditTypeCancel"
+>
+  <view slot="content" class="edit-dialog-body">
+    <t-radio-group value="{{editType}}" bind:change="onEditTypeChange">
+      <t-radio value="研究生" label="研究生" />
+      <t-radio value="实习生" label="实习生" />
+    </t-radio-group>
+  </view>
+</t-dialog>

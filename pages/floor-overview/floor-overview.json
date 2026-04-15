@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "t-tabs": "tdesign-miniprogram/tabs/tabs",
+    "t-tab-panel": "tdesign-miniprogram/tab-panel/tab-panel",
+    "room-card": "/components/room-card/index"
+  },
+  "navigationBarTitleText": "宿舍管理"
+}

@@ -1,0 +1,40 @@
+<view class="bed-card bed-card--{{bed.status === 'empty' ? 'empty' : (isLeavingSoon ? 'leaving' : 'occupied')}}" bindtap="onTap">
+  <view class="bed-card__header">
+    <view class="bed-card__no">{{roomNumber}} - {{bed.bedNo}}号床</view>
+    <t-tag wx:if="{{bed.status === 'empty'}}" variant="light" theme="success" size="small">空置</t-tag>
+    <t-tag wx:elif="{{isLeavingSoon}}" variant="light" theme="warning" size="small">即将退宿</t-tag>
+    <t-tag wx:else variant="light-outline" theme="primary" size="small">已入住</t-tag>
+  </view>
+
+  <block wx:if="{{bed.status === 'occupied' && bed.occupant}}">
+    <view class="bed-card__info">
+      <view class="bed-card__row">
+        <text class="bed-card__label">姓名</text>
+        <text class="bed-card__value">{{bed.occupant.name}}</text>
+      </view>
+      <view class="bed-card__row">
+        <text class="bed-card__label">类型</text>
+        <text class="bed-card__value">{{bed.occupant.type}}</text>
+      </view>
+      <view class="bed-card__row">
+        <text class="bed-card__label">学号/工号</text>
+        <text class="bed-card__value">{{bed.occupant.studentId}}</text>
+      </view>
+      <view class="bed-card__row">
+        <text class="bed-card__label">入住日期</text>
+        <text class="bed-card__value">{{bed.occupant.checkInDate}}</text>
+      </view>
+      <view class="bed-card__row">
+        <text class="bed-card__label">预计退宿</text>
+        <text class="bed-card__value {{isLeavingSoon ? 'bed-card__value--warn' : ''}}">{{bed.occupant.expectedLeaveDate}}</text>
+      </view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="bed-card__empty">
+      <text class="bed-card__empty-text" wx:if="{{userRole === 'admin'}}">点击办理入住</text>
+      <text class="bed-card__empty-text" wx:else>点击申请入住</text>
+    </view>
+  </block>
+</view>

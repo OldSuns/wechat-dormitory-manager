@@ -1,0 +1,60 @@
+.app-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.app-card--pending {
+  border-left: 6rpx solid #0052d9;
+}
+
+.app-card--approved {
+  border-left: 6rpx solid #2ba471;
+}
+
+.app-card--rejected {
+  border-left: 6rpx solid #d54941;
+}
+
+.app-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.app-card__type {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.app-card__body {
+  padding-bottom: 8rpx;
+}
+
+.app-card__row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8rpx 0;
+}
+
+.app-card__label {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.app-card__value {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.app-card__actions {
+  display: flex;
+  gap: 20rpx;
+  justify-content: flex-end;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
+}

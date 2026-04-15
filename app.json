@@ -1,0 +1,23 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/admin/admin",
+    "pages/student/student",
+    "pages/floor-overview/floor-overview",
+    "pages/room-detail/room-detail"
+  ],
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-navbar": "tdesign-miniprogram/navbar/navbar",
+    "t-popup": "tdesign-miniprogram/popup/popup",
+    "t-date-time-picker": "tdesign-miniprogram/date-time-picker/date-time-picker"
+  },
+  "window": {
+    "navigationBarTitleText": "宿舍管理",
+    "navigationStyle": "custom",
+    "backgroundTextStyle": "light"
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

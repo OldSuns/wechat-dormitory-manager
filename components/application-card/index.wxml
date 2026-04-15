@@ -1,0 +1,47 @@
+<view class="app-card app-card--{{application.status}}">
+  <view class="app-card__header">
+    <text class="app-card__type">{{application.type === 'checkin' ? '入住申请' : '退宿申请'}}</text>
+    <t-tag
+      wx:if="{{application.status === 'pending'}}"
+      variant="light"
+      theme="primary"
+      size="small"
+    >待审批</t-tag>
+    <t-tag
+      wx:elif="{{application.status === 'approved'}}"
+      variant="light"
+      theme="success"
+      size="small"
+    >已通过</t-tag>
+    <t-tag
+      wx:else
+      variant="light"
+      theme="danger"
+      size="small"
+    >已拒绝</t-tag>
+  </view>
+
+  <view class="app-card__body">
+    <view class="app-card__row">
+      <text class="app-card__label">申请人</text>
+      <text class="app-card__value">{{application.applicantName}}</text>
+    </view>
+    <view class="app-card__row">
+      <text class="app-card__label">房间/床位</text>
+      <text class="app-card__value">{{application.roomId}}房 {{application.bedNo}}号床</text>
+    </view>
+    <view class="app-card__row">
+      <text class="app-card__label">提交时间</text>
+      <text class="app-card__value">{{application.createdAt}}</text>
+    </view>
+    <view class="app-card__row" wx:if="{{application.reviewedAt}}">
+      <text class="app-card__label">审批时间</text>
+      <text class="app-card__value">{{application.reviewedAt}}</text>
+    </view>
+  </view>
+
+  <view class="app-card__actions" wx:if="{{showActions && application.status === 'pending'}}">
+    <t-button theme="primary" size="small" bindtap="onApprove">通过</t-button>
+    <t-button theme="danger" variant="outline" size="small" bindtap="onReject">拒绝</t-button>
+  </view>
+</view>

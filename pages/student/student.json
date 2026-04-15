@@ -1,0 +1,17 @@
+{
+  "usingComponents": {
+    "t-tabs": "tdesign-miniprogram/tabs/tabs",
+    "t-tab-panel": "tdesign-miniprogram/tab-panel/tab-panel",
+    "t-tag": "tdesign-miniprogram/tag/tag",
+    "t-empty": "tdesign-miniprogram/empty/empty",
+    "t-dialog": "tdesign-miniprogram/dialog/dialog",
+    "t-cell": "tdesign-miniprogram/cell/cell",
+    "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
+    "t-input": "tdesign-miniprogram/input/input",
+    "t-radio-group": "tdesign-miniprogram/radio-group/radio-group",
+    "t-radio": "tdesign-miniprogram/radio/radio",
+    "room-card": "/components/room-card/index",
+    "application-card": "/components/application-card/index"
+  },
+  "navigationBarTitleText": "宿舍服务"
+}

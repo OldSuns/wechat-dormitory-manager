@@ -1,0 +1,65 @@
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 40rpx;
+}
+
+.floor-tabs {
+  background: #fff;
+}
+
+/* 统计栏 */
+.summary-bar {
+  display: flex;
+  justify-content: space-around;
+  background: #fff;
+  padding: 24rpx 16rpx;
+  margin: 20rpx 24rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.summary-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.summary-value--green {
+  color: #2ba471;
+}
+
+.summary-value--orange {
+  color: #e37318;
+}
+
+.summary-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 6rpx;
+}
+
+/* 两列网格 */
+.room-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  padding: 0 24rpx;
+}
+
+.room-grid__item {
+  width: 100%;
+}
+
+.empty-hint {
+  text-align: center;
+  padding: 120rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}

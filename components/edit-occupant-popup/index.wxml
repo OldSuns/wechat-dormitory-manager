@@ -1,0 +1,81 @@
+<t-popup visible="{{visible}}" placement="bottom" bind:visible-change="onClose">
+  <view class="edit-popup">
+    <view class="edit-popup__header">
+      <text class="edit-popup__title">修改信息 - {{roomNumber}} {{bedNo}}号床</text>
+      <view class="edit-popup__close" bindtap="onClose">
+        <t-icon name="close" size="44rpx" />
+      </view>
+    </view>
+
+    <scroll-view scroll-y class="edit-popup__body">
+      <view class="edit-popup__field">
+        <text class="edit-popup__label">姓名 *</text>
+        <t-input placeholder="请输入姓名" value="{{formData.name}}" bindchange="onNameInput" />
+      </view>
+
+      <view class="edit-popup__field">
+        <text class="edit-popup__label">人员类型 *</text>
+        <t-radio-group value="{{formData.type}}" bind:change="onTypeChange">
+          <t-radio value="研究生" label="研究生" />
+          <t-radio value="实习生" label="实习生" />
+        </t-radio-group>
+      </view>
+
+      <view class="edit-popup__field">
+        <text class="edit-popup__label">性别 *</text>
+        <t-radio-group value="{{formData.gender}}" bind:change="onGenderChange">
+          <t-radio value="男" label="男" />
+          <t-radio value="女" label="女" />
+        </t-radio-group>
+      </view>
+
+      <view class="edit-popup__field">
+        <text class="edit-popup__label">学号/工号 *</text>
+        <t-input placeholder="请输入学号或工号" value="{{formData.studentId}}" bindchange="onStudentIdInput" />
+      </view>
+
+      <view class="edit-popup__field">
+        <text class="edit-popup__label">手机号</text>
+        <t-input placeholder="请输入手机号" type="number" maxlength="{{11}}" value="{{formData.phone}}" bindchange="onPhoneInput" />
+      </view>
+
+      <view class="edit-popup__field">
+        <text class="edit-popup__label">入住日期(可选)</text>
+        <view class="edit-popup__date" bindtap="openCheckInPicker">
+          <text>{{formData.checkInDate || '默认为当天'}}</text>
+        </view>
+      </view>
+
+      <view class="edit-popup__field">
+        <text class="edit-popup__label">预计退宿日期(可选)</text>
+        <view class="edit-popup__date" bindtap="openLeavePicker">
+          <text>{{formData.expectedLeaveDate || '不设置则直到手动退宿'}}</text>
+        </view>
+      </view>
+
+      <view class="edit-popup__actions">
+        <t-button theme="primary" block bindtap="onSubmit">保存修改</t-button>
+      </view>
+    </scroll-view>
+  </view>
+</t-popup>
+
+<t-date-time-picker
+  title="选择入住日期"
+  visible="{{showCheckInPicker}}"
+  mode="date"
+  value="{{formData.checkInDate}}"
+  format="YYYY-MM-DD"
+  bindconfirm="onCheckInDateConfirm"
+  bindcancel="onCheckInDateCancel"
+/>
+
+<t-date-time-picker
+  title="选择退宿日期"
+  visible="{{showLeavePicker}}"
+  mode="date"
+  value="{{formData.expectedLeaveDate}}"
+  format="YYYY-MM-DD"
+  bindconfirm="onLeaveDateConfirm"
+  bindcancel="onLeaveDateCancel"
+/>
