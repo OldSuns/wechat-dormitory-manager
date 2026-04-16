@@ -188,9 +188,25 @@ Page({
 
         wx.showModal({
           title: '导出成功',
-          content: '数据已导出,是否打开文件?',
+          content: '请选择操作',
+          confirmText: '分享文件',
+          cancelText: '打开查看',
           success: (res) => {
             if (res.confirm) {
+              // 分享文件
+              wx.shareFileMessage({
+                filePath: filePath,
+                fileName: filePath.split('/').pop(),
+                success: () => {
+                  wx.showToast({ title: '分享成功', icon: 'success' });
+                },
+                fail: (err) => {
+                  console.error('分享文件失败:', err);
+                  wx.showToast({ title: '分享失败', icon: 'none' });
+                }
+              });
+            } else if (res.cancel) {
+              // 打开文件
               wx.openDocument({
                 filePath: filePath,
                 fileType: 'xlsx',
@@ -227,9 +243,25 @@ Page({
 
         wx.showModal({
           title: '模板生成成功',
-          content: '模板已生成,是否打开查看?\n\n说明:\n- (必填)字段必须填写\n- (可选)字段可留空\n- 预计退宿日期留空表示不限期',
+          content: '说明:\n- (必填)字段必须填写\n- (可选)字段可留空\n- 预计退宿日期留空表示不限期\n\n请选择操作',
+          confirmText: '分享文件',
+          cancelText: '打开查看',
           success: (res) => {
             if (res.confirm) {
+              // 分享文件
+              wx.shareFileMessage({
+                filePath: filePath,
+                fileName: filePath.split('/').pop(),
+                success: () => {
+                  wx.showToast({ title: '分享成功', icon: 'success' });
+                },
+                fail: (err) => {
+                  console.error('分享文件失败:', err);
+                  wx.showToast({ title: '分享失败', icon: 'none' });
+                }
+              });
+            } else if (res.cancel) {
+              // 打开文件
               wx.openDocument({
                 filePath: filePath,
                 fileType: 'xlsx',
