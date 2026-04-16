@@ -5,11 +5,6 @@
 const users = [
   { userId: 'A001', studentId: 'admin001', name: '管理员', role: 'admin', phone: '13000000001', type: '管理员', gender: '男' },
   { userId: 'S001', studentId: '2024001', name: '张三', role: 'student', phone: '13800000001', type: '研究生', gender: '男' },
-  { userId: 'S002', studentId: 'I2024010', name: '李四', role: 'student', phone: '13800000002', type: '实习生', gender: '女' },
-  { userId: 'S003', studentId: '2024003', name: '王五', role: 'student', phone: '13800000003', type: '研究生', gender: '男' },
-  { userId: 'S004', studentId: '2024004', name: '赵六', role: 'student', phone: '13800000004', type: '研究生', gender: '男' },
-  { userId: 'S005', studentId: 'I2024011', name: '钱七', role: 'student', phone: '13800000005', type: '实习生', gender: '女' },
-  { userId: 'S006', studentId: '2024020', name: '新生甲', role: 'student', phone: '13600000001', type: '研究生', gender: '男' },
 ];
 
 const bed = (no, occupant) =>
