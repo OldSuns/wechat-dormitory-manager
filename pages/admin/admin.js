@@ -686,9 +686,9 @@ Page({
       });
     });
 
-    // 如果学生已入住，将当前房间和床位也加入
+    // 如果学生已入住，将当前床位加入到对应房间
     if (roomInfo) {
-      const currentKey = `${roomInfo.roomNumber}号房间（当前）`;
+      const currentKey = `${roomInfo.roomNumber}号房间`;
       if (!roomBedMap[currentKey]) {
         roomBedMap[currentKey] = {
           roomId: roomInfo.roomId,
@@ -700,15 +700,20 @@ Page({
       // 检查当前床位是否已在列表中
       const bedExists = roomBedMap[currentKey].beds.some(b => b.bedNo === roomInfo.bedNo);
       if (!bedExists) {
-        roomBedMap[currentKey].beds.unshift({
+        roomBedMap[currentKey].beds.push({
           bedNo: roomInfo.bedNo,
-          label: `${roomInfo.bedNo}号床（当前）`
+          label: `${roomInfo.bedNo}号床`
         });
       }
     }
 
-    // 构建多级选择器数据
-    const roomColumn = Object.keys(roomBedMap).map(key => ({ label: key }));
+    // 构建多级选择器数据 - 按房间号排序
+    const sortedRoomKeys = Object.keys(roomBedMap).sort((a, b) => {
+      const numA = parseInt(a.match(/\d+/)[0]);
+      const numB = parseInt(b.match(/\d+/)[0]);
+      return numA - numB;
+    });
+    const roomColumn = sortedRoomKeys.map(key => ({ label: key }));
 
     // 获取当前选中房间的床位列表
     let selectedRoomIndex = 0;
