@@ -1,7 +1,6 @@
 {
   "usingComponents": {
-    "t-input": "tdesign-miniprogram/input/input",
-    "t-message": "tdesign-miniprogram/message/message"
+    "t-input": "tdesign-miniprogram/input/input"
   },
   "navigationBarTitleText": "登录"
 }
