@@ -1104,22 +1104,18 @@ Page({
 
     const oldStudentId = this.data.currentUser.studentId;
 
-    // 检查新工号是否已被其他用户使用
-    const app = getApp();
-    const existingUser = app.globalData.users.find(u => u.studentId === newStudentId && u.studentId !== oldStudentId);
-    if (existingUser) {
-      wx.showToast({ title: '该工号已被使用', icon: 'none' });
+    // 调用新的 updateStudentId 函数
+    const result = userService.updateStudentId(oldStudentId, newStudentId);
+
+    if (!result.success) {
+      wx.showToast({ title: result.msg, icon: 'none' });
       return;
     }
 
-    // 更新用户的工号
-    userService.updateProfile({ studentId: newStudentId });
-
-    // 更新本地存储的会话信息
-    const storageService = require('../../services/storageService');
-    storageService.saveSession({ studentId: newStudentId });
-
-    this.setData({ showEditStudentIdDialog: false, currentUser: userService.getCurrentUser() });
+    this.setData({
+      showEditStudentIdDialog: false,
+      currentUser: userService.getCurrentUser()
+    });
     wx.showToast({ title: '工号已更新', icon: 'success' });
   },
 

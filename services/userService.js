@@ -142,6 +142,72 @@ function getStudentBed(studentId) {
   return null;
 }
 
+/**
+ * 修改用户的学号/工号
+ * @param {string} oldStudentId - 原学号/工号
+ * @param {string} newStudentId - 新学号/工号
+ * @returns {Object} 操作结果
+ */
+function updateStudentId(oldStudentId, newStudentId) {
+  // 1. 验证参数
+  if (!oldStudentId || !newStudentId) {
+    return { success: false, msg: '学号/工号不能为空' };
+  }
+
+  if (oldStudentId === newStudentId) {
+    return { success: false, msg: '新旧学号/工号相同' };
+  }
+
+  // 2. 查找原用户
+  const user = app().globalData.users.find((u) => u.studentId === oldStudentId);
+  if (!user) {
+    return { success: false, msg: '用户不存在' };
+  }
+
+  // 3. 检查新工号是否已被使用
+  const existingUser = app().globalData.users.find((u) => u.studentId === newStudentId);
+  if (existingUser) {
+    return { success: false, msg: '该学号/工号已被使用' };
+  }
+
+  // 4. 更新 users 数组中的 studentId
+  user.studentId = newStudentId;
+
+  // 5. 如果是当前登录用户,更新 currentUser
+  const cur = app().globalData.currentUser;
+  if (cur && cur.studentId === oldStudentId) {
+    cur.studentId = newStudentId;
+  }
+
+  // 6. 同步更新床位占用信息
+  const rooms = app().globalData.buildingData.rooms;
+  for (let i = 0; i < rooms.length; i++) {
+    const room = rooms[i];
+    for (let j = 0; j < room.beds.length; j++) {
+      const bed = room.beds[j];
+      if (bed.status === 'occupied' && bed.occupant && bed.occupant.studentId === oldStudentId) {
+        bed.occupant.studentId = newStudentId;
+      }
+    }
+  }
+
+  // 7. 同步更新申请记录
+  const applications = app().globalData.applications || [];
+  for (let i = 0; i < applications.length; i++) {
+    if (applications[i].applicantId === oldStudentId) {
+      applications[i].applicantId = newStudentId;
+    }
+  }
+
+  // 8. 更新会话
+  storageService.saveSession({ studentId: newStudentId });
+
+  // 9. 持久化
+  storageService.persistFromGlobal();
+
+  return { success: true };
+}
+
 module.exports = {
   login,
   restoreLogin,
@@ -152,6 +218,7 @@ module.exports = {
   rebind,
   updateProfile,
   updateStudentInfo,
+  updateStudentId,
   getUserByStudentId,
   getAllUsers,
   getStudentBed,
