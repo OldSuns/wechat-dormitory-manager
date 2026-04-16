@@ -103,7 +103,7 @@ Component({
       this.triggerEvent('submit', {
         roomId: this.data.roomId,
         bedNo: this.data.bedNo,
-        occupant: { name: name.trim(), type, gender, studentId: studentId.trim(), phone: phone.trim(), checkInDate, expectedLeaveDate },
+        occupant: { name: name.trim(), type, gender, studentId: studentId.trim(), phone: (phone || '').trim(), checkInDate, expectedLeaveDate },
       });
     },
   },

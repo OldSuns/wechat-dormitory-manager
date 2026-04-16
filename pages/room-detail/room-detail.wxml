@@ -38,7 +38,7 @@
 <checkin-popup
   visible="{{showCheckinPopup}}"
   roomId="{{roomId}}"
-  roomNumber="{{room.roomNumber}}"
+  roomNumber="{{room ? room.roomNumber : ''}}"
   bedNo="{{checkinBedNo}}"
   bind:close="onCheckinClose"
   bind:submit="onCheckinSubmit"
@@ -59,7 +59,7 @@
 <edit-occupant-popup
   visible="{{showEditPopup}}"
   roomId="{{roomId}}"
-  roomNumber="{{room.roomNumber}}"
+  roomNumber="{{room ? room.roomNumber : ''}}"
   bedNo="{{editBedNo}}"
   occupant="{{editOccupant}}"
   bind:close="onEditClose"
