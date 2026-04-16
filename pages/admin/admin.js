@@ -186,13 +186,10 @@ Page({
         wx.hideLoading();
         this.setData({ isExporting: false });
 
-        wx.showModal({
-          title: '导出成功',
-          content: '请选择操作',
-          confirmText: '分享文件',
-          cancelText: '打开查看',
+        wx.showActionSheet({
+          itemList: ['分享文件', '打开查看'],
           success: (res) => {
-            if (res.confirm) {
+            if (res.tapIndex === 0) {
               // 分享文件
               wx.shareFileMessage({
                 filePath: filePath,
@@ -205,7 +202,7 @@ Page({
                   wx.showToast({ title: '分享失败', icon: 'none' });
                 }
               });
-            } else if (res.cancel) {
+            } else if (res.tapIndex === 1) {
               // 打开文件
               wx.openDocument({
                 filePath: filePath,
@@ -219,6 +216,10 @@ Page({
                 }
               });
             }
+          },
+          fail: (err) => {
+            // 用户点击取消或关闭,不做任何操作
+            console.log('用户取消操作');
           }
         });
       })
@@ -241,39 +242,50 @@ Page({
       .then(filePath => {
         wx.hideLoading();
 
+        // 先显示说明
         wx.showModal({
           title: '模板生成成功',
-          content: '说明:\n- (必填)字段必须填写\n- (可选)字段可留空\n- 预计退宿日期留空表示不限期\n\n请选择操作',
-          confirmText: '分享文件',
-          cancelText: '打开查看',
-          success: (res) => {
-            if (res.confirm) {
-              // 分享文件
-              wx.shareFileMessage({
-                filePath: filePath,
-                fileName: filePath.split('/').pop(),
-                success: () => {
-                  wx.showToast({ title: '分享成功', icon: 'success' });
-                },
-                fail: (err) => {
-                  console.error('分享文件失败:', err);
-                  wx.showToast({ title: '分享失败', icon: 'none' });
+          content: '(必填)字段必须填写，(可选)字段可留空，预计退宿日期留空表示不限期',
+          showCancel: false,
+          confirmText: '知道了',
+          success: () => {
+            // 显示操作选项
+            wx.showActionSheet({
+              itemList: ['分享文件', '打开查看'],
+              success: (res) => {
+                if (res.tapIndex === 0) {
+                  // 分享文件
+                  wx.shareFileMessage({
+                    filePath: filePath,
+                    fileName: filePath.split('/').pop(),
+                    success: () => {
+                      wx.showToast({ title: '分享成功', icon: 'success' });
+                    },
+                    fail: (err) => {
+                      console.error('分享文件失败:', err);
+                      wx.showToast({ title: '分享失败', icon: 'none' });
+                    }
+                  });
+                } else if (res.tapIndex === 1) {
+                  // 打开文件
+                  wx.openDocument({
+                    filePath: filePath,
+                    fileType: 'xlsx',
+                    success: () => {
+                      console.log('打开模板成功');
+                    },
+                    fail: (err) => {
+                      wx.showToast({ title: '打开文件失败', icon: 'none' });
+                      console.error('打开模板失败:', err);
+                    }
+                  });
                 }
-              });
-            } else if (res.cancel) {
-              // 打开文件
-              wx.openDocument({
-                filePath: filePath,
-                fileType: 'xlsx',
-                success: () => {
-                  console.log('打开模板成功');
-                },
-                fail: (err) => {
-                  wx.showToast({ title: '打开文件失败', icon: 'none' });
-                  console.error('打开模板失败:', err);
-                }
-              });
-            }
+              },
+              fail: (err) => {
+                // 用户点击取消或关闭,不做任何操作
+                console.log('用户取消操作');
+              }
+            });
           }
         });
       })
@@ -686,9 +698,9 @@ Page({
       });
     });
 
-    // 如果学生已入住，将当前床位加入到对应房间
+    // 如果学生已入住，将当前房间和床位也加入
     if (roomInfo) {
-      const currentKey = `${roomInfo.roomNumber}号房间`;
+      const currentKey = `${roomInfo.roomNumber}号房间（当前）`;
       if (!roomBedMap[currentKey]) {
         roomBedMap[currentKey] = {
           roomId: roomInfo.roomId,
@@ -700,20 +712,15 @@ Page({
       // 检查当前床位是否已在列表中
       const bedExists = roomBedMap[currentKey].beds.some(b => b.bedNo === roomInfo.bedNo);
       if (!bedExists) {
-        roomBedMap[currentKey].beds.push({
+        roomBedMap[currentKey].beds.unshift({
           bedNo: roomInfo.bedNo,
-          label: `${roomInfo.bedNo}号床`
+          label: `${roomInfo.bedNo}号床（当前）`
         });
       }
     }
 
-    // 构建多级选择器数据 - 按房间号排序
-    const sortedRoomKeys = Object.keys(roomBedMap).sort((a, b) => {
-      const numA = parseInt(a.match(/\d+/)[0]);
-      const numB = parseInt(b.match(/\d+/)[0]);
-      return numA - numB;
-    });
-    const roomColumn = sortedRoomKeys.map(key => ({ label: key }));
+    // 构建多级选择器数据
+    const roomColumn = Object.keys(roomBedMap).map(key => ({ label: key }));
 
     // 获取当前选中房间的床位列表
     let selectedRoomIndex = 0;
