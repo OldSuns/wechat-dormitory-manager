@@ -24,7 +24,7 @@
         <text class="bed-card__label">入住日期</text>
         <text class="bed-card__value">{{bed.occupant.checkInDate}}</text>
       </view>
-      <view class="bed-card__row">
+      <view class="bed-card__row" wx:if="{{bed.occupant.expectedLeaveDate}}">
         <text class="bed-card__label">预计退宿</text>
         <text class="bed-card__value {{isLeavingSoon ? 'bed-card__value--warn' : ''}}">{{bed.occupant.expectedLeaveDate}}</text>
       </view>
