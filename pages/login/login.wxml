@@ -2,7 +2,7 @@
   <view class="login-header">
     <t-icon name="home" size="120rpx" color="#0052d9" />
     <text class="login-title">宿舍管理系统</text>
-    <text class="login-subtitle">研究生 / 实习生 宿舍床位管理</text>
+    <text class="login-subtitle">本科生 / 研究生 / 实习生 宿舍床位管理</text>
   </view>
 
   <view class="login-body">

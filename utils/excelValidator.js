@@ -156,8 +156,8 @@ function validateOccupantData(rows, rooms = []) {
     }
 
     // 验证类型(可选)
-    if (row['类型'] && !['研究生', '实习生'].includes(row['类型'])) {
-      rowErrors.push(`第${rowNum}行: 类型必须是"研究生"或"实习生"`);
+    if (row['类型'] && !['本科生', '研究生', '实习生'].includes(row['类型'])) {
+      rowErrors.push(`第${rowNum}行: 类型必须是"本科生"、"研究生"或"实习生"`);
     }
 
     // 验证性别
@@ -278,8 +278,8 @@ function validateUserData(rows) {
     }
 
     // 验证类型(可选)
-    if (row['类型'] && !['管理员', '研究生', '实习生'].includes(row['类型'])) {
-      rowErrors.push(`第${rowNum}行: 类型必须是"管理员"、"研究生"或"实习生"`);
+    if (row['类型'] && !['管理员', '本科生', '研究生', '实习生'].includes(row['类型'])) {
+      rowErrors.push(`第${rowNum}行: 类型必须是"管理员"、"本科生"、"研究生"或"实习生"`);
     }
 
     // 验证性别(可选)

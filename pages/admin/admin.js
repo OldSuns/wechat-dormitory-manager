@@ -669,8 +669,7 @@ Page({
 
   onStudentTap(e) {
     const studentId = e.currentTarget.dataset.studentid;
-    const user = userService.getUserByStudentId(studentId);
-    if (!user) return;
+    let user = userService.getUserByStudentId(studentId);
 
     const bedInfo = userService.getStudentBed(studentId);
     let roomInfo = null;
@@ -683,7 +682,21 @@ Page({
         checkInDate: bedInfo.bed.occupant.checkInDate,
         expectedLeaveDate: bedInfo.bed.occupant.expectedLeaveDate
       };
+
+      // 如果用户未注册,从床位信息构建临时用户对象
+      if (!user && bedInfo.bed.occupant) {
+        user = {
+          studentId: bedInfo.bed.occupant.studentId,
+          name: bedInfo.bed.occupant.name,
+          gender: bedInfo.bed.occupant.gender,
+          phone: bedInfo.bed.occupant.phone || '',
+          type: bedInfo.bed.occupant.type || '研究生',
+          role: 'student'
+        };
+      }
     }
+
+    if (!user) return;
 
     this.setData({
       showStudentDetailDialog: true,

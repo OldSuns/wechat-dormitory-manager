@@ -168,6 +168,7 @@
 >
   <view slot="content" class="edit-dialog-body">
     <t-radio-group value="{{editType}}" bind:change="onEditTypeChange">
+      <t-radio value="本科生" label="本科生" />
       <t-radio value="研究生" label="研究生" />
       <t-radio value="实习生" label="实习生" />
     </t-radio-group>

@@ -92,27 +92,35 @@ function updateProfile({ phone, type, avatarUrl, nickName }) {
 /** 管理员修改指定学生的信息并持久化 */
 function updateStudentInfo(targetStudentId, { name, gender, phone, type }) {
   const user = app().globalData.users.find((u) => u.studentId === targetStudentId);
-  if (!user) return { success: false, msg: '学生不存在' };
 
-  // 更新用户信息
-  if (name !== undefined) user.name = name;
-  if (gender !== undefined) user.gender = gender;
-  if (phone !== undefined) user.phone = phone;
-  if (type !== undefined) user.type = type;
+  // 如果用户已注册,更新用户信息
+  if (user) {
+    if (name !== undefined) user.name = name;
+    if (gender !== undefined) user.gender = gender;
+    if (phone !== undefined) user.phone = phone;
+    if (type !== undefined) user.type = type;
+  }
 
   // 同步更新床位占用信息中的学生信息
+  let foundInBed = false;
   const rooms = app().globalData.buildingData.rooms;
   for (let i = 0; i < rooms.length; i++) {
     const room = rooms[i];
     for (let j = 0; j < room.beds.length; j++) {
       const bed = room.beds[j];
       if (bed.status === 'occupied' && bed.occupant && bed.occupant.studentId === targetStudentId) {
+        foundInBed = true;
         if (name !== undefined) bed.occupant.name = name;
         if (gender !== undefined) bed.occupant.gender = gender;
         if (phone !== undefined) bed.occupant.phone = phone;
         if (type !== undefined) bed.occupant.type = type;
       }
     }
+  }
+
+  // 如果学生既未注册也未入住,返回错误
+  if (!user && !foundInBed) {
+    return { success: false, msg: '学生不存在' };
   }
 
   // 持久化
