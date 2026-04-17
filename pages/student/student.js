@@ -88,8 +88,13 @@ Page({
   // === Tab 2: 浏览楼层 ===
   _loadFloors() {
     const floors = roomService.getFloors();
+    if (floors.length === 0) {
+      this.setData({ floors: [], rooms: [], floorSummary: {}, roomSummaries: {} });
+      return;
+    }
     this.setData({ floors });
-    this._loadFloorData(this.data.currentFloor || floors[0]);
+    const targetFloor = floors.includes(this.data.currentFloor) ? this.data.currentFloor : floors[0];
+    this._loadFloorData(targetFloor);
   },
 
   _loadFloorData(floor) {
