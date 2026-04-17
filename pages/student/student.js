@@ -124,21 +124,31 @@ Page({
 
   onBuildingChange(e) {
     const index = parseInt(e.detail.value);
-    const buildingId = this.data.buildings[index].id;
+    const buildings = this.data.buildings;
+
+    // 添加索引验证
+    if (index < 0 || index >= buildings.length) return;
+
+    const buildingId = buildings[index].id;
     const floors = roomService.getFloorsByBuilding(buildingId);
     const currentFloor = floors.length > 0 ? floors[0] : null;
     if (currentFloor) {
       this._loadFloorData(buildingId, currentFloor);
       this.setData({ floors });
     } else {
-      const currentBuildingName = this.data.buildings[index].name;
+      const currentBuildingName = buildings[index].name;
       this.setData({ currentBuilding: buildingId, currentBuildingName, floors: [], currentFloor: null, rooms: [], floorSummary: {}, roomSummaries: {} });
     }
   },
 
   onFloorChange(e) {
     const index = parseInt(e.detail.value);
-    const floor = this.data.floors[index];
+    const floors = this.data.floors;
+
+    // 添加索引验证
+    if (index < 0 || index >= floors.length) return;
+
+    const floor = floors[index];
     this._loadFloorData(this.data.currentBuilding, floor);
   },
 

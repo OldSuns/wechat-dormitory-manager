@@ -15,6 +15,8 @@ function app() {
 function isWithinDays(dateStr, days) {
   if (!dateStr) return false;
   const target = new Date(dateStr);
+  // 检查日期是否有效
+  if (isNaN(target.getTime())) return false;
   const now = new Date();
   const diff = target.getTime() - now.getTime();
   return diff > 0 && diff <= days * 24 * 60 * 60 * 1000;
@@ -36,6 +38,9 @@ function addBuilding(id, name) {
   if (buildings.some(b => b.id === id)) {
     return { success: false, msg: '楼栋ID已存在' };
   }
+  if (buildings.some(b => b.name === name)) {
+    return { success: false, msg: '楼栋名称已存在' };
+  }
   buildings.push({ id, name });
   app().globalData.buildings = buildings;
   storageService.persistFromGlobal();
@@ -54,6 +59,21 @@ function deleteBuilding(buildingId) {
     buildings.splice(idx, 1);
     storageService.persistFromGlobal();
   }
+  return { success: true };
+}
+
+/** 重命名楼栋 */
+function renameBuilding(buildingId, newName) {
+  const buildings = app().globalData.buildings || [];
+  const building = buildings.find(b => b.id === buildingId);
+  if (!building) {
+    return { success: false, msg: '楼栋不存在' };
+  }
+  if (buildings.some(b => b.id !== buildingId && b.name === newName)) {
+    return { success: false, msg: '楼栋名称已存在' };
+  }
+  building.name = newName;
+  storageService.persistFromGlobal();
   return { success: true };
 }
 
@@ -364,10 +384,15 @@ function checkGenderConflict(roomId, gender) {
   const occupiedBeds = room.beds.filter(b => b.status === 'occupied' && b.occupant);
   if (occupiedBeds.length === 0) return { hasConflict: false };
 
-  const hasConflict = occupiedBeds.some(b => b.occupant.gender !== gender);
+  // 过滤掉性别为空的住客
+  const bedsWithGender = occupiedBeds.filter(b => b.occupant.gender);
+  if (bedsWithGender.length === 0) return { hasConflict: false };
+
+  // 检查是否有与目标性别不同的住客
+  const hasConflict = bedsWithGender.some(b => b.occupant.gender !== gender);
   return {
     hasConflict,
-    existingGender: occupiedBeds[0].occupant.gender
+    existingGender: bedsWithGender[0].occupant.gender
   };
 }
 
@@ -453,6 +478,7 @@ module.exports = {
   isLeavingSoon,
   getBuildings,
   addBuilding,
+  renameBuilding,
   deleteBuilding,
   getFloorsByBuilding,
   getFloors,

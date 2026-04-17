@@ -201,9 +201,10 @@ function importRooms(app, data, mode = 'merge') {
   const roomService = require('./roomService.js');
 
   if (mode === 'replace') {
-    // 替换模式：清空现有房间
+    // 修复：替换模式清空现有房间和楼栋
     buildingData.rooms = [];
     buildingData.floors = [];
+    app.globalData.buildings = []; // 新增：清空楼栋数据
   }
 
   const existingRoomMap = new Map();
@@ -224,7 +225,7 @@ function importRooms(app, data, mode = 'merge') {
 
     if (!building) {
       // 生成楼栋ID：使用时间戳+随机数确保唯一性
-      buildingId = `building_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+      buildingId = `building_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       roomService.addBuilding(buildingId, buildingName);
     } else {
       buildingId = building.id;
@@ -252,10 +253,20 @@ function importRooms(app, data, mode = 'merge') {
           });
         }
       } else if (newBedCount < currentBedCount) {
-        // 减少床位（只删除空床位）
-        existingRoom.beds = existingRoom.beds.filter(bed =>
-          bed.bedNo <= newBedCount || bed.status === 'occupied'
+        // 修复：减少床位时严格检查
+        // 检查是否有超出范围的占用床位
+        const outOfRangeBeds = existingRoom.beds.filter(bed =>
+          bed.bedNo > newBedCount && bed.status === 'occupied'
         );
+
+        if (outOfRangeBeds.length > 0) {
+          // 跳过此房间，记录错误（需要在外层处理）
+          console.warn(`房间 ${buildingName}-${item['房间号']} 的 ${outOfRangeBeds.map(b => b.bedNo).join(',')} 号床有人入住，无法缩减到 ${newBedCount} 个床位`);
+          return; // 跳过此房间的更新
+        }
+
+        // 只保留床位号在范围内的床位
+        existingRoom.beds = existingRoom.beds.filter(bed => bed.bedNo <= newBedCount);
       }
 
       updatedCount++;
@@ -376,10 +387,10 @@ function importOccupants(app, data, mode = 'merge') {
 
     if (!userExists) {
       users.push({
-        userId: `U${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
+        userId: `U${Date.now()}${Math.random().toString(36).slice(2, 11)}`,
         studentId: item['学号/工号'],
         name: item['姓名'],
-        role: 'student',
+        role: item['角色'] || 'student', // 修复：支持从Excel读取角色
         phone: item['手机号'],
         type: item['类型'],
         gender: item['性别']

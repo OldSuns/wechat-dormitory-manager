@@ -16,6 +16,19 @@ Page({
       return;
     }
     const floors = roomService.getFloors();
+
+    // 添加空数组检查
+    if (floors.length === 0) {
+      this.setData({
+        floors: [],
+        currentFloor: null,
+        rooms: [],
+        floorSummary: {},
+        roomSummaries: {}
+      });
+      return;
+    }
+
     this.setData({ floors });
     this.loadFloorData(floors[0]);
   },
@@ -25,7 +38,13 @@ Page({
   },
 
   onTabChange(e) {
-    const floor = this.data.floors[e.detail.value];
+    const index = parseInt(e.detail.value);
+    const floors = this.data.floors;
+
+    // 添加索引验证
+    if (index < 0 || index >= floors.length) return;
+
+    const floor = floors[index];
     this.loadFloorData(floor);
   },
 
