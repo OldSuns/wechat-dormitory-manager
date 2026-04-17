@@ -14,6 +14,7 @@ const SESSION_KEY = 'dormitory_session';
 function _buildDefaultDataset() {
   return {
     users: JSON.parse(JSON.stringify(mockData.users)),
+    buildings: JSON.parse(JSON.stringify(mockData.buildings)),
     buildingData: JSON.parse(JSON.stringify(mockData.buildingData)),
     applications: [],
     nextApplicationId: 1,
@@ -47,6 +48,7 @@ function persistFromGlobal() {
   var app = getApp();
   var dataset = {
     users: app.globalData.users,
+    buildings: app.globalData.buildings,
     buildingData: app.globalData.buildingData,
     applications: app.globalData.applications,
     nextApplicationId: app.globalData.nextApplicationId,
@@ -97,6 +99,7 @@ function initGlobalData(appInstance) {
   }
 
   appInstance.globalData.users = dataset.users;
+  appInstance.globalData.buildings = dataset.buildings || [];
   appInstance.globalData.buildingData = dataset.buildingData;
   appInstance.globalData.applications = dataset.applications || [];
   appInstance.globalData.nextApplicationId = dataset.nextApplicationId || 1;

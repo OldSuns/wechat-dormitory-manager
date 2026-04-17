@@ -8,14 +8,18 @@ Page({
     currentTab: 0,
     currentUser: null,
     // Tab1: 楼层概览
+    buildings: [],
+    currentBuilding: null,
+    currentBuildingName: '',
     floors: [],
-    currentFloor: 1,
+    currentFloor: null,
     floorSummary: {},
     rooms: [],
     roomSummaries: {},
     // Tab2: 房间管理
     allRooms: [],
     showAddDialog: false,
+    addBuilding: null,
     addFloor: 1,
     addRoomNumber: '',
     addBedCount: 4,
@@ -25,6 +29,7 @@ Page({
     // Room editing
     showEditRoomDialog: false,
     editingRoomId: null,
+    editRoomBuilding: null,
     editRoomFloor: 1,
     editRoomNumber: '',
     editRoomBedCount: 4,
@@ -393,29 +398,56 @@ Page({
 
   // === Tab 1: 楼层概览 ===
   _loadFloorOverview() {
-    const floors = roomService.getFloors();
-    if (floors.length === 0) {
-      this.setData({ floors: [], rooms: [], floorSummary: {}, roomSummaries: {} });
+    const buildings = roomService.getBuildings();
+    if (buildings.length === 0) {
+      this.setData({ buildings: [], floors: [], rooms: [], floorSummary: {}, roomSummaries: {} });
       return;
     }
-    this.setData({ floors });
-    const targetFloor = floors.includes(this.data.currentFloor) ? this.data.currentFloor : floors[0];
-    this._loadFloorData(targetFloor);
+
+    const currentBuilding = this.data.currentBuilding || buildings[0].id;
+    const currentBuildingName = buildings.find(b => b.id === currentBuilding)?.name || '';
+    const floors = roomService.getFloorsByBuilding(currentBuilding);
+
+    if (floors.length === 0) {
+      this.setData({ buildings, currentBuilding, currentBuildingName, floors: [], rooms: [], floorSummary: {}, roomSummaries: {} });
+      return;
+    }
+
+    const currentFloor = floors.includes(this.data.currentFloor) ? this.data.currentFloor : floors[0];
+    this.setData({ buildings, currentBuilding, currentBuildingName, floors, currentFloor });
+    this._loadFloorData(currentBuilding, currentFloor);
   },
 
-  _loadFloorData(floor) {
-    const rooms = roomService.getRoomsByFloor(floor);
-    const floorSummary = roomService.getFloorSummary(floor);
+  _loadFloorData(buildingId, floor) {
+    const buildings = this.data.buildings;
+    const currentBuildingName = buildings.find(b => b.id === buildingId)?.name || '';
+    const rooms = roomService.getRoomsByFloor(buildingId, floor);
+    const floorSummary = roomService.getFloorSummary(buildingId, floor);
     const roomSummaries = {};
     rooms.forEach((room) => {
       roomSummaries[room.roomId] = roomService.getRoomSummary(room.roomId);
     });
-    this.setData({ currentFloor: floor, floorSummary, rooms, roomSummaries });
+    this.setData({ currentBuilding: buildingId, currentBuildingName, currentFloor: floor, floorSummary, rooms, roomSummaries });
   },
 
-  onFloorTabChange(e) {
-    const floor = this.data.floors[e.detail.value];
-    this._loadFloorData(floor);
+  onBuildingChange(e) {
+    const index = parseInt(e.detail.value);
+    const buildingId = this.data.buildings[index].id;
+    const floors = roomService.getFloorsByBuilding(buildingId);
+    const currentFloor = floors.length > 0 ? floors[0] : null;
+    if (currentFloor) {
+      this._loadFloorData(buildingId, currentFloor);
+      this.setData({ floors });
+    } else {
+      const currentBuildingName = this.data.buildings[index].name;
+      this.setData({ currentBuilding: buildingId, currentBuildingName, floors: [], currentFloor: null, rooms: [], floorSummary: {}, roomSummaries: {} });
+    }
+  },
+
+  onFloorChange(e) {
+    const index = parseInt(e.detail.value);
+    const floor = this.data.floors[index];
+    this._loadFloorData(this.data.currentBuilding, floor);
   },
 
   onRoomTap(e) {

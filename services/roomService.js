@@ -25,14 +25,61 @@ function isLeavingSoon(expectedLeaveDate) {
   return isWithinDays(expectedLeaveDate, 7);
 }
 
-/** 获取所有楼层 */
+/** 获取所有楼栋 */
+function getBuildings() {
+  return app().globalData.buildings || [];
+}
+
+/** 添加楼栋 */
+function addBuilding(id, name) {
+  const buildings = app().globalData.buildings || [];
+  if (buildings.some(b => b.id === id)) {
+    return { success: false, msg: '楼栋ID已存在' };
+  }
+  buildings.push({ id, name });
+  app().globalData.buildings = buildings;
+  storageService.persistFromGlobal();
+  return { success: true };
+}
+
+/** 删除楼栋 */
+function deleteBuilding(buildingId) {
+  const rooms = app().globalData.buildingData.rooms;
+  if (rooms.some(r => r.buildingId === buildingId)) {
+    return { success: false, msg: '该楼栋下还有房间，无法删除' };
+  }
+  const buildings = app().globalData.buildings || [];
+  const idx = buildings.findIndex(b => b.id === buildingId);
+  if (idx !== -1) {
+    buildings.splice(idx, 1);
+    storageService.persistFromGlobal();
+  }
+  return { success: true };
+}
+
+/** 获取指定楼栋的楼层列表 */
+function getFloorsByBuilding(buildingId) {
+  const rooms = app().globalData.buildingData.rooms.filter(r => r.buildingId === buildingId);
+  const floors = [...new Set(rooms.map(r => r.floor))].sort((a, b) => a - b);
+  return floors;
+}
+
+/** 获取所有楼层（兼容旧代码） */
 function getFloors() {
   return app().globalData.buildingData.floors;
 }
 
-/** 获取指定楼层的房间列表 */
-function getRoomsByFloor(floor) {
+/** 获取指定楼栋和楼层的房间列表 */
+function getRoomsByFloor(buildingId, floor) {
+  if (buildingId) {
+    return app().globalData.buildingData.rooms.filter((r) => r.buildingId === buildingId && r.floor === floor);
+  }
   return app().globalData.buildingData.rooms.filter((r) => r.floor === floor);
+}
+
+/** 获取指定楼栋的所有房间 */
+function getRoomsByBuilding(buildingId) {
+  return app().globalData.buildingData.rooms.filter((r) => r.buildingId === buildingId);
 }
 
 /** 根据 roomId 获取房间 */
@@ -66,8 +113,8 @@ function getRoomSummary(roomId) {
 }
 
 /** 获取楼层汇总统计 */
-function getFloorSummary(floor) {
-  const rooms = getRoomsByFloor(floor);
+function getFloorSummary(buildingId, floor) {
+  const rooms = getRoomsByFloor(buildingId, floor);
   let totalRooms = rooms.length;
   let totalBeds = 0;
   let emptyBeds = 0;
@@ -151,11 +198,18 @@ function getBuildingSummary() {
 }
 
 /** 新增房间 */
-function addRoom({ floor, roomNumber, bedCount }) {
+function addRoom({ buildingId, floor, roomNumber, bedCount }) {
   const rooms = app().globalData.buildingData.rooms;
   if (rooms.some((r) => r.roomNumber === roomNumber)) {
     return { success: false, msg: '房间号已存在' };
   }
+
+  // 确保楼栋存在
+  const buildings = app().globalData.buildings || [];
+  if (!buildings.some(b => b.id === buildingId)) {
+    return { success: false, msg: '楼栋不存在' };
+  }
+
   const floors = app().globalData.buildingData.floors;
   if (!floors.includes(floor)) {
     floors.push(floor);
@@ -165,7 +219,7 @@ function addRoom({ floor, roomNumber, bedCount }) {
   for (let i = 1; i <= bedCount; i++) {
     beds.push({ bedNo: i, status: 'empty', occupant: null });
   }
-  rooms.push({ roomId: roomNumber, floor, roomNumber, beds });
+  rooms.push({ roomId: roomNumber, buildingId, floor, roomNumber, beds });
   storageService.persistFromGlobal();
   return { success: true };
 }
@@ -220,17 +274,22 @@ function modifyBedCount(roomId, newCount) {
   return { success: true };
 }
 
-/** 更新房间基本信息 (楼层、门牌号) */
-function updateRoomInfo(roomId, { floor, roomNumber }) {
+/** 更新房间基本信息 (楼栋、楼层、门牌号) */
+function updateRoomInfo(roomId, { buildingId, floor, roomNumber }) {
   const room = getRoomById(roomId);
   if (!room) return { success: false, msg: '房间不存在' };
 
-  // Validate floor
   if (!floor || floor < 1 || !Number.isInteger(floor)) {
     return { success: false, msg: '请输入有效的楼层号（正整数）' };
   }
 
-  // Validate room number uniqueness (if changed)
+  if (buildingId) {
+    const buildings = app().globalData.buildings || [];
+    if (!buildings.some(b => b.id === buildingId)) {
+      return { success: false, msg: '楼栋不存在' };
+    }
+  }
+
   if (roomNumber !== room.roomNumber) {
     const rooms = app().globalData.buildingData.rooms;
     if (rooms.some(r => r.roomNumber === roomNumber && r.roomId !== roomId)) {
@@ -238,20 +297,18 @@ function updateRoomInfo(roomId, { floor, roomNumber }) {
     }
   }
 
-  // Update room info
   const oldFloor = room.floor;
+  if (buildingId) room.buildingId = buildingId;
   room.floor = floor;
   room.roomNumber = roomNumber;
-  room.roomId = roomNumber; // Keep roomId synced with roomNumber
+  room.roomId = roomNumber;
 
-  // Update floors array
   const buildingData = app().globalData.buildingData;
   if (!buildingData.floors.includes(floor)) {
     buildingData.floors.push(floor);
     buildingData.floors.sort((a, b) => a - b);
   }
 
-  // Remove old floor if no rooms left on it
   if (oldFloor !== floor) {
     const hasRoomsOnOldFloor = buildingData.rooms.some(r => r.floor === oldFloor);
     if (!hasRoomsOnOldFloor) {
@@ -269,17 +326,21 @@ function updateRoomInfo(roomId, { floor, roomNumber }) {
 /** 获取所有空床位 */
 function getEmptyBeds() {
   const rooms = getAllRooms();
+  const buildings = app().globalData.buildings || [];
   const emptyBeds = [];
 
   rooms.forEach(room => {
+    const building = buildings.find(b => b.id === room.buildingId);
     room.beds.forEach(bed => {
       if (bed.status === 'empty') {
         emptyBeds.push({
           roomId: room.roomId,
           roomNumber: room.roomNumber,
+          buildingId: room.buildingId,
+          buildingName: building ? building.name : '',
           floor: room.floor,
           bedNo: bed.bedNo,
-          label: `${room.roomNumber}号房间 ${bed.bedNo}号床`
+          label: `${building ? building.name + '-' : ''}${room.roomNumber}号房间 ${bed.bedNo}号床`
         });
       }
     });
@@ -383,7 +444,12 @@ function updateOccupant({ roomId, bedNo, occupant }) {
 
 module.exports = {
   isLeavingSoon,
+  getBuildings,
+  addBuilding,
+  deleteBuilding,
+  getFloorsByBuilding,
   getFloors,
+  getRoomsByBuilding,
   getRoomsByFloor,
   getRoomById,
   getRoomSummary,

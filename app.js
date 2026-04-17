@@ -7,6 +7,7 @@ App({
     nextApplicationId: 1,
     applications: [],
     users: [],
+    buildings: [],
     buildingData: { floors: [], rooms: [] },
   },
   onLaunch() {

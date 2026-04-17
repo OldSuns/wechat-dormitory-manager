@@ -50,9 +50,26 @@
 
   <!-- Tab 2: 浏览楼层 -->
   <view wx:if="{{currentTab === 1}}">
-    <t-tabs defaultValue="{{0}}" bind:change="onFloorTabChange" t-class="floor-tabs">
-      <t-tab-panel wx:for="{{floors}}" wx:key="*this" label="{{item}}F" value="{{index}}" />
-    </t-tabs>
+    <view class="selector-row">
+      <view class="selector-item">
+        <text class="selector-label">楼栋:</text>
+        <picker mode="selector" range="{{buildings}}" range-key="name" bindchange="onBuildingChange">
+          <view class="selector-value">
+            {{currentBuildingName || '请选择'}}
+            <t-icon name="chevron-down" size="32rpx" />
+          </view>
+        </picker>
+      </view>
+      <view class="selector-item">
+        <text class="selector-label">楼层:</text>
+        <picker mode="selector" range="{{floors}}" bindchange="onFloorChange">
+          <view class="selector-value">
+            {{currentFloor ? currentFloor + 'F' : '请选择'}}
+            <t-icon name="chevron-down" size="32rpx" />
+          </view>
+        </picker>
+      </view>
+    </view>
 
     <view class="summary-bar">
       <view class="summary-item">

@@ -5,9 +5,42 @@
 }
 
 .student-tabs { background: #fff; }
-.floor-tabs { background: #fff; margin-top: 4rpx; }
 
 .tab-content { padding: 20rpx 24rpx; }
+
+/* 选择器行 */
+.selector-row {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 24rpx 32rpx;
+  gap: 32rpx;
+}
+
+.selector-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.selector-label {
+  font-size: 28rpx;
+  color: #666;
+  white-space: nowrap;
+}
+
+.selector-value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 20rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #333;
+}
 
 /* 我的床位卡片 */
 .my-bed-card {
