@@ -13,12 +13,17 @@ const storageService = require('./storageService.js');
  */
 function exportRooms(app) {
   const rooms = app.globalData.buildingData.rooms || [];
+  const buildings = app.globalData.buildings || [];
 
-  const data = rooms.map(room => ({
-    '楼层': room.floor,
-    '房间号': room.roomNumber,
-    '床位数': room.beds.length
-  }));
+  const data = rooms.map(room => {
+    const building = buildings.find(b => b.id === room.buildingId);
+    return {
+      '楼栋': building ? building.name : room.buildingId,
+      '楼层': room.floor,
+      '房间号': room.roomNumber,
+      '床位数': room.beds.length
+    };
+  });
 
   return XLSX.utils.json_to_sheet(data);
 }
@@ -30,12 +35,16 @@ function exportRooms(app) {
  */
 function exportOccupants(app) {
   const rooms = app.globalData.buildingData.rooms || [];
+  const buildings = app.globalData.buildings || [];
   const data = [];
 
   rooms.forEach(room => {
+    const building = buildings.find(b => b.id === room.buildingId);
+    const buildingName = building ? building.name : room.buildingId;
     room.beds.forEach(bed => {
       if (bed.status === 'occupied' && bed.occupant) {
         data.push({
+          '楼栋': buildingName,
           '房间号': room.roomNumber,
           '床位号': bed.bedNo,
           '姓名': bed.occupant.name,
@@ -189,6 +198,7 @@ function parseExcelFile(filePath) {
  */
 function importRooms(app, data, mode = 'merge') {
   const buildingData = app.globalData.buildingData;
+  const roomService = require('./roomService.js');
 
   if (mode === 'replace') {
     // 替换模式：清空现有房间
@@ -198,22 +208,39 @@ function importRooms(app, data, mode = 'merge') {
 
   const existingRoomMap = new Map();
   buildingData.rooms.forEach(room => {
-    existingRoomMap.set(room.roomNumber, room);
+    existingRoomMap.set(`${room.buildingId}-${room.roomNumber}`, room);
   });
 
   let addedCount = 0;
   let updatedCount = 0;
 
   data.forEach(item => {
-    const existingRoom = existingRoomMap.get(item.roomNumber);
+    // 自动创建楼栋（如果不存在）
+    const buildingName = item['楼栋'];
+    let buildingId = null;
+
+    const buildings = app.globalData.buildings || [];
+    let building = buildings.find(b => b.name === buildingName);
+
+    if (!building) {
+      // 生成楼栋ID：使用时间戳+随机数确保唯一性
+      buildingId = `building_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+      roomService.addBuilding(buildingId, buildingName);
+    } else {
+      buildingId = building.id;
+    }
+
+    const roomKey = `${buildingId}-${item['房间号']}`;
+    const existingRoom = existingRoomMap.get(roomKey);
 
     if (existingRoom) {
       // 更新现有房间
-      existingRoom.floor = item.floor;
+      existingRoom.buildingId = buildingId;
+      existingRoom.floor = item['楼层'];
 
       // 调整床位数
       const currentBedCount = existingRoom.beds.length;
-      const newBedCount = item.bedCount;
+      const newBedCount = item['床位数'];
 
       if (newBedCount > currentBedCount) {
         // 增加床位
@@ -235,7 +262,7 @@ function importRooms(app, data, mode = 'merge') {
     } else {
       // 添加新房间
       const beds = [];
-      for (let i = 1; i <= item.bedCount; i++) {
+      for (let i = 1; i <= item['床位数']; i++) {
         beds.push({
           bedNo: i,
           status: 'empty',
@@ -244,9 +271,10 @@ function importRooms(app, data, mode = 'merge') {
       }
 
       const newRoom = {
-        roomId: item.roomNumber,
-        floor: item.floor,
-        roomNumber: item.roomNumber,
+        roomId: `${buildingId}-${item['房间号']}`,
+        buildingId: buildingId,
+        floor: item['楼层'],
+        roomNumber: item['房间号'],
         beds: beds
       };
 
@@ -276,6 +304,7 @@ function importRooms(app, data, mode = 'merge') {
  */
 function importOccupants(app, data, mode = 'merge') {
   const buildingData = app.globalData.buildingData;
+  const buildings = app.globalData.buildings || [];
 
   if (mode === 'replace') {
     // 替换模式：清空所有床位
@@ -287,10 +316,10 @@ function importOccupants(app, data, mode = 'merge') {
     });
   }
 
-  // 创建房间映射
+  // 创建房间映射（楼栋+房间号）
   const roomMap = new Map();
   buildingData.rooms.forEach(room => {
-    roomMap.set(room.roomNumber, room);
+    roomMap.set(`${room.buildingId}-${room.roomNumber}`, room);
   });
 
   let addedCount = 0;
@@ -298,17 +327,27 @@ function importOccupants(app, data, mode = 'merge') {
   const errors = [];
 
   data.forEach(item => {
-    const room = roomMap.get(item.roomNumber);
+    // 查找楼栋ID
+    const buildingName = item['楼栋'];
+    const building = buildings.find(b => b.name === buildingName);
 
-    if (!room) {
-      errors.push(`房间"${item.roomNumber}"不存在`);
+    if (!building) {
+      errors.push(`楼栋"${buildingName}"不存在`);
       return;
     }
 
-    const bed = room.beds.find(b => b.bedNo === item.bedNo);
+    const roomKey = `${building.id}-${item['房间号']}`;
+    const room = roomMap.get(roomKey);
+
+    if (!room) {
+      errors.push(`房间"${buildingName}-${item['房间号']}"不存在`);
+      return;
+    }
+
+    const bed = room.beds.find(b => b.bedNo === item['床位号']);
 
     if (!bed) {
-      errors.push(`房间"${item.roomNumber}"的床位${item.bedNo}不存在`);
+      errors.push(`房间"${buildingName}-${item['房间号']}"的床位${item['床位号']}不存在`);
       return;
     }
 
@@ -316,13 +355,13 @@ function importOccupants(app, data, mode = 'merge') {
 
     bed.status = 'occupied';
     bed.occupant = {
-      name: item.name,
-      studentId: item.studentId,
-      type: item.type,
-      gender: item.gender,
-      phone: item.phone,
-      checkInDate: item.checkInDate,
-      expectedLeaveDate: item.expectedLeaveDate
+      name: item['姓名'],
+      studentId: item['学号/工号'],
+      type: item['类型'],
+      gender: item['性别'],
+      phone: item['手机号'],
+      checkInDate: item['入住日期'],
+      expectedLeaveDate: item['预计退宿日期']
     };
 
     if (wasOccupied) {
@@ -333,17 +372,17 @@ function importOccupants(app, data, mode = 'merge') {
 
     // 确保用户存在
     const users = app.globalData.users;
-    const userExists = users.some(u => u.studentId === item.studentId);
+    const userExists = users.some(u => u.studentId === item['学号/工号']);
 
     if (!userExists) {
       users.push({
         userId: `U${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
-        studentId: item.studentId,
-        name: item.name,
+        studentId: item['学号/工号'],
+        name: item['姓名'],
         role: 'student',
-        phone: item.phone,
-        type: item.type,
-        gender: item.gender
+        phone: item['手机号'],
+        type: item['类型'],
+        gender: item['性别']
       });
     }
   });
@@ -546,9 +585,9 @@ function generateTemplate() {
 
       // 房间信息模板
       const roomTemplate = [
-        { '楼层(必填)': 1, '房间号(必填)': '101', '床位数(必填)': 6 },
-        { '楼层(必填)': 1, '房间号(必填)': '102', '床位数(必填)': 6 },
-        { '楼层(必填)': 2, '房间号(必填)': '201', '床位数(必填)': 4 }
+        { '楼栋(必填)': '10号楼', '楼层(必填)': 1, '房间号(必填)': '101', '床位数(必填)': 6 },
+        { '楼栋(必填)': '10号楼', '楼层(必填)': 1, '房间号(必填)': '102', '床位数(必填)': 6 },
+        { '楼栋(必填)': '11号楼', '楼层(必填)': 2, '房间号(必填)': '201', '床位数(必填)': 4 }
       ];
       const roomSheet = XLSX.utils.json_to_sheet(roomTemplate);
       XLSX.utils.book_append_sheet(wb, roomSheet, '房间信息');
@@ -556,6 +595,7 @@ function generateTemplate() {
       // 入住信息模板
       const occupantTemplate = [
         {
+          '楼栋(必填)': '10号楼',
           '房间号(必填)': '101',
           '床位号(必填)': 1,
           '姓名(必填)': '张三',
@@ -567,6 +607,7 @@ function generateTemplate() {
           '预计退宿日期(可选)': ''
         },
         {
+          '楼栋(必填)': '10号楼',
           '房间号(必填)': '101',
           '床位号(必填)': 2,
           '姓名(必填)': '李四',

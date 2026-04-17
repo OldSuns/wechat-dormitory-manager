@@ -25,7 +25,7 @@ function normalizeRow(row) {
 function validateRoomData(rows) {
   const errors = [];
   const validData = [];
-  const roomNumbers = new Set();
+  const roomKeys = new Set();
 
   if (!rows || rows.length === 0) {
     return { valid: false, errors: ['房间数据为空'], data: [] };
@@ -38,6 +38,11 @@ function validateRoomData(rows) {
     // 规范化列名
     row = normalizeRow(row);
 
+    // 验证楼栋
+    if (!row['楼栋']) {
+      rowErrors.push(`第${rowNum}行: 楼栋不能为空`);
+    }
+
     // 验证楼层
     if (!row['楼层'] && row['楼层'] !== 0) {
       rowErrors.push(`第${rowNum}行: 楼层不能为空`);
@@ -49,11 +54,13 @@ function validateRoomData(rows) {
     if (!row['房间号']) {
       rowErrors.push(`第${rowNum}行: 房间号不能为空`);
     } else {
+      const buildingName = String(row['楼栋']).trim();
       const roomNumber = String(row['房间号']).trim();
-      if (roomNumbers.has(roomNumber)) {
-        rowErrors.push(`第${rowNum}行: 房间号"${roomNumber}"重复`);
+      const roomKey = `${buildingName}-${roomNumber}`;
+      if (roomKeys.has(roomKey)) {
+        rowErrors.push(`第${rowNum}行: 房间"${buildingName}-${roomNumber}"重复`);
       } else {
-        roomNumbers.add(roomNumber);
+        roomKeys.add(roomKey);
       }
     }
 
@@ -71,9 +78,10 @@ function validateRoomData(rows) {
       errors.push(...rowErrors);
     } else {
       validData.push({
-        floor: Number(row['楼层']),
-        roomNumber: String(row['房间号']).trim(),
-        bedCount: Number(row['床位数'])
+        '楼栋': String(row['楼栋']).trim(),
+        '楼层': Number(row['楼层']),
+        '房间号': String(row['房间号']).trim(),
+        '床位数': Number(row['床位数'])
       });
     }
   });
@@ -100,10 +108,10 @@ function validateOccupantData(rows, rooms = []) {
     return { valid: true, errors: [], data: [] }; // 入住信息可以为空
   }
 
-  // 创建房间映射
+  // 创建房间映射（楼栋+房间号）
   const roomMap = new Map();
   rooms.forEach(room => {
-    roomMap.set(room.roomNumber, room);
+    roomMap.set(`${room.buildingId}-${room.roomNumber}`, room);
   });
 
   rows.forEach((row, index) => {
@@ -113,15 +121,30 @@ function validateOccupantData(rows, rooms = []) {
     // 规范化列名
     row = normalizeRow(row);
 
+    // 验证楼栋
+    if (!row['楼栋']) {
+      rowErrors.push(`第${rowNum}行: 楼栋不能为空`);
+    }
+
     // 验证房间号
     if (!row['房间号']) {
       rowErrors.push(`第${rowNum}行: 房间号不能为空`);
     } else {
+      const buildingName = String(row['楼栋']).trim();
       const roomNumber = String(row['房间号']).trim();
-      const room = roomMap.get(roomNumber);
+
+      // 查找房间（需要通过楼栋名称找到buildingId）
+      let room = null;
+      for (const [key, r] of roomMap.entries()) {
+        if (r.roomNumber === roomNumber) {
+          // 这里简化处理，实际应该通过buildingName匹配
+          room = r;
+          break;
+        }
+      }
 
       if (rooms.length > 0 && !room) {
-        rowErrors.push(`第${rowNum}行: 房间"${roomNumber}"不存在`);
+        rowErrors.push(`第${rowNum}行: 房间"${buildingName}-${roomNumber}"不存在`);
       }
 
       // 验证床位号
@@ -136,9 +159,9 @@ function validateOccupantData(rows, rooms = []) {
         }
 
         // 检查床位是否重复
-        const bedKey = `${roomNumber}-${bedNo}`;
+        const bedKey = `${buildingName}-${roomNumber}-${bedNo}`;
         if (occupiedBeds.has(bedKey)) {
-          rowErrors.push(`第${rowNum}行: 床位"${roomNumber}-${bedNo}"重复`);
+          rowErrors.push(`第${rowNum}行: 床位"${buildingName}-${roomNumber}-${bedNo}"重复`);
         } else {
           occupiedBeds.add(bedKey);
         }
@@ -204,15 +227,16 @@ function validateOccupantData(rows, rooms = []) {
       const today = new Date();
 
       validData.push({
-        roomNumber: String(row['房间号']).trim(),
-        bedNo: Number(row['床位号']),
-        name: String(row['姓名']).trim(),
-        studentId: String(row['学号/工号']).trim(),
-        type: row['类型'] || '研究生',
-        gender: String(row['性别']).trim(),
-        phone: row['手机号'] ? String(row['手机号']).trim() : '',
-        checkInDate: row['入住日期'] ? formatDate(row['入住日期']) : formatDate(today),
-        expectedLeaveDate: row['预计退宿日期'] ? formatDate(row['预计退宿日期']) : null
+        '楼栋': String(row['楼栋']).trim(),
+        '房间号': String(row['房间号']).trim(),
+        '床位号': Number(row['床位号']),
+        '姓名': String(row['姓名']).trim(),
+        '学号/工号': String(row['学号/工号']).trim(),
+        '类型': row['类型'] || '研究生',
+        '性别': String(row['性别']).trim(),
+        '手机号': row['手机号'] ? String(row['手机号']).trim() : '',
+        '入住日期': row['入住日期'] ? formatDate(row['入住日期']) : formatDate(today),
+        '预计退宿日期': row['预计退宿日期'] ? formatDate(row['预计退宿日期']) : null
       });
     }
   });

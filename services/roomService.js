@@ -200,8 +200,9 @@ function getBuildingSummary() {
 /** 新增房间 */
 function addRoom({ buildingId, floor, roomNumber, bedCount }) {
   const rooms = app().globalData.buildingData.rooms;
-  if (rooms.some((r) => r.roomNumber === roomNumber)) {
-    return { success: false, msg: '房间号已存在' };
+  // 检查同一楼栋下是否有相同房间号
+  if (rooms.some((r) => r.buildingId === buildingId && r.roomNumber === roomNumber)) {
+    return { success: false, msg: '该楼栋下房间号已存在' };
   }
 
   // 确保楼栋存在
@@ -219,7 +220,9 @@ function addRoom({ buildingId, floor, roomNumber, bedCount }) {
   for (let i = 1; i <= bedCount; i++) {
     beds.push({ bedNo: i, status: 'empty', occupant: null });
   }
-  rooms.push({ roomId: roomNumber, buildingId, floor, roomNumber, beds });
+  // 使用 buildingId-roomNumber 作为唯一 roomId
+  const roomId = `${buildingId}-${roomNumber}`;
+  rooms.push({ roomId, buildingId, floor, roomNumber, beds });
   storageService.persistFromGlobal();
   return { success: true };
 }
@@ -290,18 +293,22 @@ function updateRoomInfo(roomId, { buildingId, floor, roomNumber }) {
     }
   }
 
-  if (roomNumber !== room.roomNumber) {
+  // 检查房间号是否在同一楼栋下重复
+  const targetBuildingId = buildingId || room.buildingId;
+  if (roomNumber !== room.roomNumber || targetBuildingId !== room.buildingId) {
     const rooms = app().globalData.buildingData.rooms;
-    if (rooms.some(r => r.roomNumber === roomNumber && r.roomId !== roomId)) {
-      return { success: false, msg: '门牌号已存在' };
+    if (rooms.some(r => r.buildingId === targetBuildingId && r.roomNumber === roomNumber && r.roomId !== roomId)) {
+      return { success: false, msg: '该楼栋下门牌号已存在' };
     }
   }
 
   const oldFloor = room.floor;
+  const oldBuildingId = room.buildingId;
   if (buildingId) room.buildingId = buildingId;
   room.floor = floor;
   room.roomNumber = roomNumber;
-  room.roomId = roomNumber;
+  // 更新 roomId 为新的 buildingId-roomNumber
+  room.roomId = `${room.buildingId}-${roomNumber}`;
 
   const buildingData = app().globalData.buildingData;
   if (!buildingData.floors.includes(floor)) {

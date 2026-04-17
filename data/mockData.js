@@ -19,7 +19,7 @@ const buildingData = {
   floors: [1, 2],
   rooms: [
     {
-      roomId: '10101', buildingId: 'tenth', floor: 1, roomNumber: '101',
+      roomId: 'tenth-101', buildingId: 'tenth', floor: 1, roomNumber: '101',
       beds: [
         bed(1, { name: '张三', type: '研究生', gender: '男', studentId: '2024001', phone: '13800000001', checkInDate: '2026-03-01', expectedLeaveDate: '2026-04-18' }),
         bed(2, { name: '李四', type: '实习生', gender: '女', studentId: '2024010', phone: '13800000002', checkInDate: '2026-02-15', expectedLeaveDate: '2026-06-30' }),
@@ -27,13 +27,13 @@ const buildingData = {
       ],
     },
     {
-      roomId: '11101', buildingId: 'eleventh', floor: 1, roomNumber: '101',
+      roomId: 'eleventh-101', buildingId: 'eleventh', floor: 1, roomNumber: '101',
       beds: [
         bed(1),bed(2),bed(3), bed(4),
       ],
     },
     {
-      roomId: '10201', buildingId: 'tenth', floor: 2, roomNumber: '201',
+      roomId: 'tenth-201', buildingId: 'tenth', floor: 2, roomNumber: '201',
       beds: [
         bed(1),bed(2), bed(3), bed(4),
       ],

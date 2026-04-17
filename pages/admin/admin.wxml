@@ -60,8 +60,24 @@
 
   <!-- Tab 2: 房间管理 -->
   <view wx:if="{{currentTab === 1}}" class="tab-content">
-    <view class="mgmt-header">
-      <t-button theme="primary" size="small" icon="add" bindtap="onShowAddDialog">添加房间</t-button>
+    <view class="mgmt-header-compact">
+      <view class="compact-filter">
+        <text class="compact-label">楼栋:</text>
+        <picker mode="selector" range="{{buildingFilterOptions}}" bindchange="onRoomFilterBuildingChange">
+          <view class="compact-picker">
+            {{currentBuildingFilterName}}
+            <t-icon name="chevron-down" size="28rpx" />
+          </view>
+        </picker>
+      </view>
+      <view class="compact-actions">
+        <view class="icon-btn" bindtap="onShowBuildingManage">
+          <t-icon name="setting" size="40rpx" color="#666" />
+        </view>
+        <view class="icon-btn icon-btn--primary" bindtap="onShowAddDialog">
+          <t-icon name="add" size="40rpx" color="#0052d9" />
+        </view>
+      </view>
     </view>
 
     <view class="room-list">
@@ -74,8 +90,7 @@
       >
         <view class="room-mgmt-cell">
           <view class="room-mgmt-cell__left">
-            <text class="room-mgmt-cell__name">{{item.roomNumber}}号</text>
-            <text class="room-mgmt-cell__floor">{{item.floor}}F</text>
+            <text class="room-mgmt-cell__name">{{item.buildingName}}-{{item.floor}}F-{{item.roomNumber}}号</text>
           </view>
           <view class="room-mgmt-cell__right">
             <text class="room-mgmt-cell__bed-info">{{item.occupiedCount}}/{{item.beds.length}}</text>
@@ -241,6 +256,12 @@
   bind:cancel="onEditRoomDialogClose"
 >
   <view slot="content" class="edit-dialog-body">
+    <view class="add-dialog-field">
+      <text class="add-dialog-label">楼栋</text>
+      <picker mode="selector" range="{{buildings}}" range-key="name" value="{{editRoomBuildingIndex}}" bindchange="onEditRoomBuildingChange">
+        <view class="picker-view">{{editRoomBuildingName || '请选择楼栋'}}</view>
+      </picker>
+    </view>
     <view class="add-dialog-field">
       <text class="add-dialog-label">楼层</text>
       <t-input placeholder="如 3" type="number" value="{{editRoomFloor}}" bindchange="onEditRoomFloorInput" />
@@ -473,3 +494,71 @@
   bindconfirm="onLeaveDateConfirm"
   bindcancel="onLeaveDateCancel"
 />
+
+<!-- 楼栋管理对话框 -->
+<t-dialog
+  visible="{{showBuildingManageDialog}}"
+  title="楼栋管理"
+  confirmBtn="关闭"
+  bind:confirm="onCloseBuildingManage"
+>
+  <view slot="content" class="building-manage-body">
+    <view class="building-list">
+      <view class="building-item" wx:for="{{buildingList}}" wx:key="id">
+        <view class="building-item__info">
+          <text class="building-item__name">{{item.name}}</text>
+          <text class="building-item__stats">{{item.roomCount}}个房间, {{item.bedCount}}个床位</text>
+        </view>
+        <view class="building-item__actions">
+          <t-button theme="default" size="small" variant="outline" bindtap="onShowRenameBuilding" data-buildingid="{{item.id}}">重命名</t-button>
+          <t-button theme="danger" size="small" variant="outline" bindtap="onShowDeleteBuilding" data-buildingid="{{item.id}}">删除</t-button>
+        </view>
+      </view>
+    </view>
+    <view class="building-add">
+      <t-button theme="primary" size="medium" block icon="add" bindtap="onShowAddBuilding">添加楼栋</t-button>
+    </view>
+  </view>
+</t-dialog>
+
+<!-- 添加楼栋对话框 -->
+<t-dialog
+  visible="{{showAddBuildingDialog}}"
+  title="添加楼栋"
+  confirmBtn="确认添加"
+  cancelBtn="取消"
+  bind:confirm="onConfirmAddBuilding"
+  bind:cancel="onCancelAddBuilding"
+>
+  <view slot="content" class="edit-dialog-body">
+    <t-input placeholder="请输入楼栋名称（如：10号楼）" value="{{newBuildingName}}" bindchange="onAddBuildingNameInput" clearable />
+  </view>
+</t-dialog>
+
+<!-- 重命名楼栋对话框 -->
+<t-dialog
+  visible="{{showRenameBuildingDialog}}"
+  title="重命名楼栋"
+  confirmBtn="确认"
+  cancelBtn="取消"
+  bind:confirm="onConfirmRenameBuilding"
+  bind:cancel="onCancelRenameBuilding"
+>
+  <view slot="content" class="edit-dialog-body">
+    <t-input placeholder="请输入新的楼栋名称" value="{{renamingBuildingName}}" bindchange="onRenameBuildingNameInput" clearable />
+  </view>
+</t-dialog>
+
+<!-- 删除楼栋确认对话框 -->
+<t-dialog
+  visible="{{showDeleteBuildingDialog}}"
+  title="删除楼栋"
+  confirmBtn="确认删除"
+  cancelBtn="取消"
+  bind:confirm="onConfirmDeleteBuilding"
+  bind:cancel="onCancelDeleteBuilding"
+>
+  <view slot="content">
+    <text>确认删除楼栋"{{deletingBuildingName}}"？此操作不可恢复。</text>
+  </view>
+</t-dialog>

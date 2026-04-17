@@ -18,18 +18,36 @@ Page({
     roomSummaries: {},
     // Tab2: 房间管理
     allRooms: [],
+    roomFilterBuilding: null, // 房间筛选的楼栋ID，null表示全部
+    buildingFilterOptions: ['全部'],
+    currentBuildingFilterName: '全部',
     showAddDialog: false,
     addBuilding: null,
+    addBuildingIndex: 0,
+    addBuildingName: '',
     addFloor: 1,
     addRoomNumber: '',
     addBedCount: 4,
     showFloorPicker: false,
     floorPickerOptions: [],
     floorPickerValue: [],
+    // 楼栋管理
+    showBuildingManageDialog: false,
+    buildingList: [],
+    showAddBuildingDialog: false,
+    newBuildingName: '',
+    showRenameBuildingDialog: false,
+    renamingBuildingId: null,
+    renamingBuildingName: '',
+    showDeleteBuildingDialog: false,
+    deletingBuildingId: null,
+    deletingBuildingName: '',
     // Room editing
     showEditRoomDialog: false,
     editingRoomId: null,
     editRoomBuilding: null,
+    editRoomBuildingIndex: 0,
+    editRoomBuildingName: '',
     editRoomFloor: 1,
     editRoomNumber: '',
     editRoomBedCount: 4,
@@ -456,19 +474,197 @@ Page({
 
   // === Tab 2: 房间管理 ===
   _loadRoomManagement() {
-    const allRooms = roomService.getAllRooms().slice().sort((a, b) => {
+    const buildings = roomService.getBuildings();
+    const filterBuilding = this.data.roomFilterBuilding;
+
+    let allRooms = roomService.getAllRooms().slice();
+
+    // 如果选择了楼栋筛选，则过滤
+    if (filterBuilding) {
+      allRooms = allRooms.filter(r => r.buildingId === filterBuilding);
+    }
+
+    allRooms = allRooms.sort((a, b) => {
+      if (a.buildingId !== b.buildingId) return a.buildingId.localeCompare(b.buildingId);
       if (a.floor !== b.floor) return a.floor - b.floor;
       return a.roomNumber.localeCompare(b.roomNumber);
-    }).map(room => ({
-      ...room,
-      occupiedCount: room.beds.filter(b => b.status === 'occupied').length
-    }));
-    this.setData({ allRooms });
+    }).map(room => {
+      const building = buildings.find(b => b.id === room.buildingId);
+      return {
+        ...room,
+        buildingName: building ? building.name : room.buildingId,
+        occupiedCount: room.beds.filter(b => b.status === 'occupied').length
+      };
+    });
+
+    // 构建楼栋筛选选项
+    const buildingFilterOptions = ['全部'].concat(buildings.map(b => b.name));
+
+    // 计算当前选中的楼栋名称
+    let currentBuildingFilterName = '全部';
+    if (filterBuilding) {
+      const building = buildings.find(b => b.id === filterBuilding);
+      if (building) currentBuildingFilterName = building.name;
+    }
+
+    this.setData({ allRooms, buildings, buildingFilterOptions, currentBuildingFilterName });
+  },
+
+  onRoomFilterBuildingChange(e) {
+    const index = parseInt(e.detail.value);
+    // index 0 = 全部，index 1+ = 具体楼栋
+    const buildings = roomService.getBuildings();
+    const filterBuilding = index === 0 ? null : buildings[index - 1].id;
+    this.setData({ roomFilterBuilding: filterBuilding });
+    this._loadRoomManagement();
+  },
+
+  onShowBuildingManage() {
+    const buildings = roomService.getBuildings();
+    const allRooms = roomService.getAllRooms();
+
+    const buildingList = buildings.map(b => {
+      const rooms = allRooms.filter(r => r.buildingId === b.id);
+      const totalBeds = rooms.reduce((sum, r) => sum + r.beds.length, 0);
+      return {
+        id: b.id,
+        name: b.name,
+        roomCount: rooms.length,
+        bedCount: totalBeds
+      };
+    });
+
+    this.setData({ showBuildingManageDialog: true, buildingList });
+  },
+
+  onCloseBuildingManage() {
+    this.setData({ showBuildingManageDialog: false });
+  },
+
+  onShowAddBuilding() {
+    this.setData({ showAddBuildingDialog: true, newBuildingName: '' });
+  },
+
+  onAddBuildingNameInput(e) {
+    this.setData({ newBuildingName: e.detail.value });
+  },
+
+  onConfirmAddBuilding() {
+    const name = this.data.newBuildingName.trim();
+    if (!name) {
+      wx.showToast({ title: '请输入楼栋名称', icon: 'none' });
+      return;
+    }
+
+    const buildings = roomService.getBuildings();
+    if (buildings.some(b => b.name === name)) {
+      wx.showToast({ title: '楼栋名称已存在', icon: 'none' });
+      return;
+    }
+
+    const buildingId = `building_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const result = roomService.addBuilding(buildingId, name);
+
+    if (result.success) {
+      wx.showToast({ title: '添加成功', icon: 'success' });
+      this.setData({ showAddBuildingDialog: false });
+      this.onShowBuildingManage(); // 刷新列表
+      this._loadRoomManagement(); // 刷新房间列表
+    } else {
+      wx.showToast({ title: result.msg, icon: 'none' });
+    }
+  },
+
+  onCancelAddBuilding() {
+    this.setData({ showAddBuildingDialog: false });
+  },
+
+  onShowRenameBuilding(e) {
+    const buildingId = e.currentTarget.dataset.buildingid;
+    const building = this.data.buildingList.find(b => b.id === buildingId);
+    this.setData({
+      showRenameBuildingDialog: true,
+      renamingBuildingId: buildingId,
+      renamingBuildingName: building.name
+    });
+  },
+
+  onRenameBuildingNameInput(e) {
+    this.setData({ renamingBuildingName: e.detail.value });
+  },
+
+  onConfirmRenameBuilding() {
+    const name = this.data.renamingBuildingName.trim();
+    if (!name) {
+      wx.showToast({ title: '请输入楼栋名称', icon: 'none' });
+      return;
+    }
+
+    const buildings = roomService.getBuildings();
+    if (buildings.some(b => b.name === name && b.id !== this.data.renamingBuildingId)) {
+      wx.showToast({ title: '楼栋名称已存在', icon: 'none' });
+      return;
+    }
+
+    const building = buildings.find(b => b.id === this.data.renamingBuildingId);
+    if (building) {
+      building.name = name;
+      const storageService = require('../../services/storageService');
+      storageService.persistFromGlobal();
+      wx.showToast({ title: '重命名成功', icon: 'success' });
+      this.setData({ showRenameBuildingDialog: false });
+      this.onShowBuildingManage(); // 刷新列表
+      this._loadRoomManagement(); // 刷新房间列表
+      this._loadFloorOverview(); // 刷新楼层概览
+    }
+  },
+
+  onCancelRenameBuilding() {
+    this.setData({ showRenameBuildingDialog: false });
+  },
+
+  onShowDeleteBuilding(e) {
+    const buildingId = e.currentTarget.dataset.buildingid;
+    const building = this.data.buildingList.find(b => b.id === buildingId);
+
+    if (building.roomCount > 0) {
+      wx.showToast({ title: `该楼栋下还有${building.roomCount}个房间，无法删除`, icon: 'none', duration: 2000 });
+      return;
+    }
+
+    this.setData({
+      showDeleteBuildingDialog: true,
+      deletingBuildingId: buildingId,
+      deletingBuildingName: building.name
+    });
+  },
+
+  onConfirmDeleteBuilding() {
+    const result = roomService.deleteBuilding(this.data.deletingBuildingId);
+    if (result.success) {
+      wx.showToast({ title: '删除成功', icon: 'success' });
+      this.setData({ showDeleteBuildingDialog: false });
+      this.onShowBuildingManage(); // 刷新列表
+      this._loadRoomManagement(); // 刷新房间列表
+      this._loadFloorOverview(); // 刷新楼层概览
+    } else {
+      wx.showToast({ title: result.msg, icon: 'none' });
+    }
+  },
+
+  onCancelDeleteBuilding() {
+    this.setData({ showDeleteBuildingDialog: false });
   },
 
   onShowAddDialog() {
+    const buildings = roomService.getBuildings();
+    const addBuilding = buildings.length > 0 ? buildings[0].id : null;
+    const addBuildingName = buildings.length > 0 ? buildings[0].name : '';
     this.setData({
       showAddDialog: true,
+      addBuilding,
+      addBuildingName,
+      addBuildingIndex: 0,
       addFloor: 1,
       addRoomNumber: '',
       addBedCount: 4,
@@ -477,6 +673,16 @@ Page({
 
   onAddDialogClose() {
     this.setData({ showAddDialog: false });
+  },
+
+  onAddBuildingChange(e) {
+    const index = parseInt(e.detail.value);
+    const buildings = roomService.getBuildings();
+    this.setData({
+      addBuilding: buildings[index].id,
+      addBuildingName: buildings[index].name,
+      addBuildingIndex: index,
+    });
   },
 
   onAddRoomNumberInput(e) {
@@ -492,7 +698,11 @@ Page({
   },
 
   onConfirmAddRoom() {
-    const { addFloor, addRoomNumber, addBedCount } = this.data;
+    const { addBuilding, addFloor, addRoomNumber, addBedCount } = this.data;
+    if (!addBuilding) {
+      wx.showToast({ title: '请选择楼栋', icon: 'none' });
+      return;
+    }
     if (!addFloor || addFloor < 1 || !Number.isInteger(addFloor)) {
       wx.showToast({ title: '请输入有效的楼层号（正整数）', icon: 'none' });
       return;
@@ -502,6 +712,7 @@ Page({
       return;
     }
     const result = roomService.addRoom({
+      buildingId: addBuilding,
       floor: addFloor,
       roomNumber: addRoomNumber.trim(),
       bedCount: addBedCount,
@@ -545,9 +756,16 @@ Page({
       return;
     }
 
+    const buildings = roomService.getBuildings();
+    const buildingIndex = buildings.findIndex(b => b.id === room.buildingId);
+    const buildingName = buildingIndex >= 0 ? buildings[buildingIndex].name : '';
+
     this.setData({
       showEditRoomDialog: true,
       editingRoomId: roomId,
+      editRoomBuilding: room.buildingId,
+      editRoomBuildingIndex: buildingIndex >= 0 ? buildingIndex : 0,
+      editRoomBuildingName: buildingName,
       editRoomFloor: room.floor,
       editRoomNumber: room.roomNumber,
       editRoomBedCount: room.beds.length
@@ -556,6 +774,16 @@ Page({
 
   onEditRoomDialogClose() {
     this.setData({ showEditRoomDialog: false });
+  },
+
+  onEditRoomBuildingChange(e) {
+    const index = parseInt(e.detail.value);
+    const buildings = roomService.getBuildings();
+    this.setData({
+      editRoomBuilding: buildings[index].id,
+      editRoomBuildingName: buildings[index].name,
+      editRoomBuildingIndex: index,
+    });
   },
 
   onEditRoomFloorInput(e) {
@@ -571,9 +799,12 @@ Page({
   },
 
   onConfirmEditRoom() {
-    const { editingRoomId, editRoomFloor, editRoomNumber, editRoomBedCount } = this.data;
+    const { editingRoomId, editRoomBuilding, editRoomFloor, editRoomNumber, editRoomBedCount } = this.data;
 
-    // Validate inputs
+    if (!editRoomBuilding) {
+      wx.showToast({ title: '请选择楼栋', icon: 'none' });
+      return;
+    }
     if (!editRoomFloor || editRoomFloor < 1 || !Number.isInteger(editRoomFloor)) {
       wx.showToast({ title: '请输入有效的楼层号（正整数）', icon: 'none' });
       return;
@@ -583,8 +814,9 @@ Page({
       return;
     }
 
-    // Update room basic info (floor, roomNumber)
+    // Update room basic info (buildingId, floor, roomNumber)
     const updateResult = roomService.updateRoomInfo(editingRoomId, {
+      buildingId: editRoomBuilding,
       floor: editRoomFloor,
       roomNumber: editRoomNumber.trim()
     });
@@ -613,6 +845,7 @@ Page({
   // === Tab 3: 学生总览 ===
   _loadStudentOverview() {
     const allUsers = userService.getAllUsers();
+    const buildings = roomService.getBuildings();
     const students = [];
     const processedStudentIds = new Set();
     let occupiedCount = 0;
@@ -629,10 +862,12 @@ Page({
       let gender = null;
 
       if (bedInfo && bedInfo.room && bedInfo.bed) {
+        const building = buildings.find(b => b.id === bedInfo.room.buildingId);
+        const buildingName = building ? building.name : bedInfo.room.buildingId;
         floor = bedInfo.room.floor;
         roomNumber = bedInfo.room.roomNumber;
         bedNo = bedInfo.bed.bedNo;
-        roomInfo = `${floor}F-${roomNumber}号-${bedNo}床`;
+        roomInfo = `${buildingName}-${floor}F-${roomNumber}号-${bedNo}床`;
         gender = bedInfo.bed.occupant.gender || user.gender;
         occupiedCount++;
       } else {
@@ -660,11 +895,13 @@ Page({
           const occupant = bed.occupant;
           // 如果该学生ID未被处理过（即未注册），则添加到列表
           if (!processedStudentIds.has(occupant.studentId)) {
+            const building = buildings.find(b => b.id === room.buildingId);
+            const buildingName = building ? building.name : room.buildingId;
             students.push({
               studentId: occupant.studentId,
               name: occupant.name || '未命名',
               gender: occupant.gender || '未知',
-              roomInfo: `${room.floor}F-${room.roomNumber}号-${bed.bedNo}床`,
+              roomInfo: `${buildingName}-${room.floor}F-${room.roomNumber}号-${bed.bedNo}床`,
               floor: room.floor,
               roomNumber: room.roomNumber,
               bedNo: bed.bedNo
