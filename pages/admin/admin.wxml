@@ -6,7 +6,6 @@
     <t-tab-panel label="房间管理" value="{{1}}" />
     <t-tab-panel label="学生总览" value="{{2}}" />
     <t-tab-panel label="设置" value="{{3}}" />
-    <t-tab-panel label="申请审批" value="{{4}}" />
   </t-tabs>
 
   <!-- Tab 1: 楼层概览 -->
